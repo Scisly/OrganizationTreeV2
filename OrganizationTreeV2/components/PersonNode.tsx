@@ -28,21 +28,35 @@ const useStyles = makeStyles({
     }
   },
   surveyIndicator: {
-    width: '12px !important',
-    height: '12px !important',
+    width: '20px !important',
+    height: '20px !important',
     borderRadius: '50% !important',
-    marginLeft: '8px',
+    marginLeft: '0px',
     flexShrink: 0,
     position: 'relative',
     display: 'block !important',
     border: 'none !important',
     outline: 'none !important',
     overflow: 'visible !important',
+    minWidth: '20px !important',
+    minHeight: '20px !important',
+    maxWidth: '20px !important',
+    maxHeight: '20px !important',
+    borderTopLeftRadius: '50% !important',
+    borderTopRightRadius: '50% !important',
+    borderBottomLeftRadius: '50% !important',
+    borderBottomRightRadius: '50% !important',
     '&.responded': {
       backgroundColor: '#10B981 !important', // Emerald-500
     },
     '&.notResponded': {
       backgroundColor: '#EF4444 !important', // Red-500
+    },
+    '&::before': {
+      display: 'none !important',
+    },
+    '&::after': {
+      display: 'none !important',
     },
   },
   glowWrapper: {
@@ -156,20 +170,37 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
         <GlowCapture>
           <CardHeader
             className={styles.cardHeader}
-            image={<PersonCircle20Regular />}
+            image={
+              shouldShowSurveyIndicator ? (
+                <div className={styles.glowWrapper}>
+                  <Glow color={hasResponse ? '#10B981' : '#EF4444'}>
+                    <div 
+                      className={`${styles.surveyIndicator} ${hasResponse ? 'responded' : 'notResponded'}`}
+                      title={hasResponse ? 'Użytkownik odpowiedział na ankietę' : 'Użytkownik nie odpowiedział na ankietę'}
+                      style={{
+                        width: '20px',
+                        height: '20px', 
+                        borderRadius: '50%',
+                        backgroundColor: hasResponse ? '#10B981' : '#EF4444',
+                        border: 'none',
+                        display: 'block',
+                        flexShrink: 0,
+                        boxSizing: 'border-box',
+                        WebkitBorderRadius: '50%',
+                        MozBorderRadius: '50%',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                      }}
+                    />
+                  </Glow>
+                </div>
+              ) : (
+                <PersonCircle20Regular />
+              )
+            }
             header={
               <div className={styles.headerContent}>
                 <Text className={styles.personName}>{person.name}</Text>
-                {shouldShowSurveyIndicator && (
-                  <div className={styles.glowWrapper}>
-                    <Glow color={hasResponse ? '#10B981' : '#EF4444'}>
-                      <div 
-                        className={`${styles.surveyIndicator} ${hasResponse ? 'responded' : 'notResponded'}`}
-                        title={hasResponse ? 'Użytkownik odpowiedział na ankietę' : 'Użytkownik nie odpowiedział na ankietę'}
-                      />
-                    </Glow>
-                  </div>
-                )}
               </div>
             }
           />
