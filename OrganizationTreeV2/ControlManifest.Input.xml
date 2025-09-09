@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest>
+  <control namespace="OrganizationTreeV2" constructor="OrganizationTreeV2" version="0.0.1" display-name-key="OrganizationTreeV2" description-key="OrganizationTreeV2 description" control-type="virtual" >
+    <!--external-service-usage node declares whether this 3rd party PCF control is using external service or not, if yes, this control will be considered as premium and please also add the external domain it is using.
+    If it is not using any external service, please set the enabled="false" and DO NOT add any domain below. The "enabled" will be false by default.
+    Example1:
+      <external-service-usage enabled="true">
+        <domain>www.Microsoft.com</domain>
+      </external-service-usage>
+    Example2:
+      <external-service-usage enabled="false">
+      </external-service-usage>
+    -->
+    <external-service-usage enabled="false">
+      <!--UNCOMMENT TO ADD EXTERNAL DOMAINS
+      <domain></domain>
+      <domain></domain>
+      -->
+    </external-service-usage>
+    <!-- Properties for the organization tree control -->
+    <property name="surveyUrl" display-name-key="Survey_URL" description-key="URL for the survey" of-type="SingleLine.Text" usage="input" required="true" />
+    <property name="surveyId" display-name-key="Survey_ID" description-key="ID for the survey" of-type="SingleLine.Text" usage="input" required="true" />
+
+    <!-- dataset node represents organization view records -->
+    <data-set name="organizationDataSet" display-name-key="Organization_Dataset">
+      <property-set name="id" display-name-key="Record_ID" description-key="Unique identifier" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="name" display-name-key="Person_Name" description-key="Person name" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="position" display-name-key="Position_Title" description-key="Job position" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="managerId" display-name-key="Manager_ID" description-key="Manager ID" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="email" display-name-key="Email" description-key="Email address" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="ag_userid" display-name-key="User_ID" description-key="User ID from system" of-type="SingleLine.Text" usage="bound" required="false" />
+    </data-set>
+
+    <!-- dataset node represents survey responses -->
+    <data-set name="surveyResponsesDataSet" display-name-key="Survey_Responses_Dataset">
+      <property-set name="responseId" display-name-key="Response_ID" description-key="Unique response identifier" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="survey_id" display-name-key="Survey_ID_Response" description-key="Survey ID for filtering" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="personId" display-name-key="Person_ID_Response" description-key="Person ID from organization dataset" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="responseUrl" display-name-key="Response_URL" description-key="URL to view survey response" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="responseDate" display-name-key="Response_Date" description-key="Date when survey was completed" of-type="DateAndTime.DateAndTime" usage="bound" required="false" />
+    </data-set>
+
+    <resources>
+      <code path="index.ts" order="1"/>
+      <platform-library name="React" version="16.14.0" />
+      <platform-library name="Fluent" version="9.46.2" />
+      <!-- UNCOMMENT TO ADD MORE RESOURCES
+      <css path="css/OrganizationTreeV2.css" order="1" />
+      <resx path="strings/OrganizationTreeV2.1033.resx" version="1.0.0" />
+      -->
+    </resources>
+    <feature-usage>
+      <uses-feature name="WebAPI" required="true" />
+    </feature-usage>
+  </control>
+</manifest>
