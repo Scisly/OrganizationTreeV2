@@ -12,7 +12,7 @@ export interface OrganizationPerson {
 
 export interface OrganizationNode {
   id: string;
-  type: 'person';
+  type: "person";
   position: { x: number; y: number };
   data: {
     person: OrganizationPerson;
@@ -31,7 +31,7 @@ export interface OrganizationEdge {
   id: string;
   source: string;
   target: string;
-  type: 'smoothstep';
+  type: "smoothstep";
 }
 
 export interface HierarchyFilterOptions {

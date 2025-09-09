@@ -1,90 +1,94 @@
-import * as React from 'react';
-import { Handle, Position } from 'reactflow';
-import { 
-  Card, 
-  CardHeader, 
+import * as React from "react";
+import { Handle, Position } from "reactflow";
+import {
+  Card,
+  CardHeader,
   CardPreview,
-  Button, 
-  Text, 
+  Button,
+  Text,
   makeStyles,
   shorthands,
-  tokens
-} from '@fluentui/react-components';
-import { PersonCircle20Regular, QuestionCircle20Regular, DocumentSearch20Regular } from '@fluentui/react-icons';
-import { OrganizationPerson, SurveyResponse } from '../types/OrganizationTypes';
-import { OrganizationService } from '../services/OrganizationService';
-import { Glow, GlowCapture } from '@codaworks/react-glow';
+  tokens,
+} from "@fluentui/react-components";
+import {
+  PersonCircle20Regular,
+  QuestionCircle20Regular,
+  DocumentSearch20Regular,
+} from "@fluentui/react-icons";
+import { OrganizationPerson, SurveyResponse } from "../types/OrganizationTypes";
+import { OrganizationService } from "../services/OrganizationService";
+import { Glow, GlowCapture } from "@codaworks/react-glow";
 
 const useStyles = makeStyles({
   card: {
-    width: '220px',
-    minHeight: '120px',
+    width: "220px",
+    minHeight: "120px",
     backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    ...shorthands.border("1px", "solid", tokens.colorNeutralStroke1),
     boxShadow: tokens.shadow8,
-    position: 'relative',
-    '&:hover': {
+    position: "relative",
+    "&:hover": {
       boxShadow: tokens.shadow16,
-    }
+    },
   },
   surveyIndicator: {
-    width: '20px !important',
-    height: '20px !important',
-    borderRadius: '50% !important',
-    marginLeft: '0px',
+    width: "20px !important",
+    height: "20px !important",
+    borderRadius: "50% !important",
+    marginLeft: "0px",
     flexShrink: 0,
-    position: 'relative',
-    display: 'block !important',
-    border: 'none !important',
-    outline: 'none !important',
-    overflow: 'visible !important',
-    minWidth: '20px !important',
-    minHeight: '20px !important',
-    maxWidth: '20px !important',
-    maxHeight: '20px !important',
-    borderTopLeftRadius: '50% !important',
-    borderTopRightRadius: '50% !important',
-    borderBottomLeftRadius: '50% !important',
-    borderBottomRightRadius: '50% !important',
-    '&.responded': {
-      backgroundColor: '#10B981 !important', // Emerald-500
+    position: "relative",
+    display: "block !important",
+    border: "none !important",
+    outline: "none !important",
+    overflow: "visible !important",
+    minWidth: "20px !important",
+    minHeight: "20px !important",
+    maxWidth: "20px !important",
+    maxHeight: "20px !important",
+    borderTopLeftRadius: "50% !important",
+    borderTopRightRadius: "50% !important",
+    borderBottomLeftRadius: "50% !important",
+    borderBottomRightRadius: "50% !important",
+    "&.responded": {
+      backgroundColor: "#10B981 !important", // Emerald-500
     },
-    '&.notResponded': {
-      backgroundColor: '#EF4444 !important', // Red-500
+    "&.notResponded": {
+      backgroundColor: "#EF4444 !important", // Red-500
     },
-    '&::before': {
-      display: 'none !important',
+    "&::before": {
+      display: "none !important",
     },
-    '&::after': {
-      display: 'none !important',
+    "&::after": {
+      display: "none !important",
     },
   },
   glowWrapper: {
-    borderRadius: '50% !important',
-    overflow: 'visible !important',
-    display: 'inline-block',
+    borderRadius: "50% !important",
+    overflow: "visible !important",
+    display: "inline-block",
   },
   cardHeader: {
-    ...shorthands.padding('8px', '12px'),
-    display: 'flex',
-    alignItems: 'center',
-    '& .fui-CardHeader__header': {
-      display: 'flex',
-      alignItems: 'center',
+    ...shorthands.padding("8px", "12px"),
+    display: "flex",
+    alignItems: "center",
+    "& .fui-CardHeader__header": {
+      display: "flex",
+      alignItems: "center",
       flex: 1,
     },
   },
   headerContent: {
-    display: 'flex',
-    alignItems: 'center',
-    width: '100%',
-    justifyContent: 'space-between',
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    justifyContent: "space-between",
   },
   cardContent: {
-    ...shorthands.padding('0px', '12px', '12px'),
-    display: 'flex',
-    flexDirection: 'column',
-    ...shorthands.gap('4px'),
+    ...shorthands.padding("0px", "12px", "12px"),
+    display: "flex",
+    flexDirection: "column",
+    ...shorthands.gap("4px"),
   },
   personName: {
     fontWeight: tokens.fontWeightSemibold,
@@ -100,18 +104,18 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground3,
   },
   surveyButton: {
-    marginTop: '8px',
-    width: '100%',
-    pointerEvents: 'auto',
-    position: 'relative',
+    marginTop: "8px",
+    width: "100%",
+    pointerEvents: "auto",
+    position: "relative",
     zIndex: 10,
   },
   handle: {
-    width: '8px',
-    height: '8px',
+    width: "8px",
+    height: "8px",
     backgroundColor: tokens.colorBrandBackground,
-    ...shorthands.border('2px', 'solid', tokens.colorNeutralBackground1),
-  }
+    ...shorthands.border("2px", "solid", tokens.colorNeutralBackground1),
+  },
 });
 
 export interface PersonNodeProps {
@@ -130,7 +134,17 @@ export interface PersonNodeProps {
 
 export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
   const styles = useStyles();
-  const { person, surveyUrl, onSurveyClick, onResponseClick, surveyResponse, userId, fullHierarchy, allPeople, showSurveyButton } = data;
+  const {
+    person,
+    surveyUrl,
+    onSurveyClick,
+    onResponseClick,
+    surveyResponse,
+    userId,
+    fullHierarchy,
+    allPeople,
+    showSurveyButton,
+  } = data;
 
   const handleSurveyClick = (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -149,47 +163,60 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
   };
 
   // Sprawdź czy pokazać przycisk ankiety
-  const shouldShowSurveyButton = showSurveyButton ?? OrganizationService.isPersonInCurrentUserTeam(fullHierarchy, person.id, userId, allPeople);
-  
+  const shouldShowSurveyButton =
+    showSurveyButton ??
+    OrganizationService.isPersonInCurrentUserTeam(
+      fullHierarchy,
+      person.id,
+      userId,
+      allPeople
+    );
+
   // Sprawdź czy istnieje odpowiedź dla tej osoby
   const hasResponse = surveyResponse?.responseUrl;
-  
+
   // Sprawdź czy pokazać wskazówkę ankiety (tylko dla zespołu aktualnego użytkownika)
   const shouldShowSurveyIndicator = shouldShowSurveyButton;
 
   return (
     <>
-      <Handle 
-        type="target" 
-        position={Position.Top} 
+      <Handle
+        type="target"
+        position={Position.Top}
         className={styles.handle}
         isConnectable={false}
       />
-      
-      <Card className={styles.card}>        
+
+      <Card className={styles.card}>
         <GlowCapture>
           <CardHeader
             className={styles.cardHeader}
             image={
               shouldShowSurveyIndicator ? (
                 <div className={styles.glowWrapper}>
-                  <Glow color={hasResponse ? '#10B981' : '#EF4444'}>
-                    <div 
-                      className={`${styles.surveyIndicator} ${hasResponse ? 'responded' : 'notResponded'}`}
-                      title={hasResponse ? 'Użytkownik odpowiedział na ankietę' : 'Użytkownik nie odpowiedział na ankietę'}
+                  <Glow color={hasResponse ? "#10B981" : "#EF4444"}>
+                    <div
+                      className={`${styles.surveyIndicator} ${
+                        hasResponse ? "responded" : "notResponded"
+                      }`}
+                      title={
+                        hasResponse
+                          ? "Użytkownik odpowiedział na ankietę"
+                          : "Użytkownik nie odpowiedział na ankietę"
+                      }
                       style={{
-                        width: '20px',
-                        height: '20px', 
-                        borderRadius: '50%',
-                        backgroundColor: hasResponse ? '#10B981' : '#EF4444',
-                        border: 'none',
-                        display: 'block',
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        backgroundColor: hasResponse ? "#10B981" : "#EF4444",
+                        border: "none",
+                        display: "block",
                         flexShrink: 0,
-                        boxSizing: 'border-box',
-                        WebkitBorderRadius: '50%',
-                        MozBorderRadius: '50%',
-                        appearance: 'none',
-                        WebkitAppearance: 'none',
+                        boxSizing: "border-box",
+                        WebkitBorderRadius: "50%",
+                        MozBorderRadius: "50%",
+                        appearance: "none",
+                        WebkitAppearance: "none",
                       }}
                     />
                   </Glow>
@@ -205,15 +232,13 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
             }
           />
         </GlowCapture>
-        
+
         <div className={styles.cardContent}>
           {person.position && (
             <Text className={styles.position}>{person.position}</Text>
           )}
-          {person.email && (
-            <Text className={styles.email}>{person.email}</Text>
-          )}
-          
+          {person.email && <Text className={styles.email}>{person.email}</Text>}
+
           {shouldShowSurveyButton && (
             <>
               {hasResponse ? (
@@ -241,10 +266,10 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
           )}
         </div>
       </Card>
-      
-      <Handle 
-        type="source" 
-        position={Position.Bottom} 
+
+      <Handle
+        type="source"
+        position={Position.Bottom}
         className={styles.handle}
         isConnectable={false}
       />
