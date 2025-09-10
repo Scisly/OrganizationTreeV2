@@ -4,6 +4,7 @@ import {
   OrganizationNode,
   OrganizationEdge,
   SurveyResponse,
+  SelectedSurvey,
 } from "../types/OrganizationTypes";
 
 export class LayoutService {
@@ -17,10 +18,10 @@ export class LayoutService {
    */
   public static createTreeLayout(
     hierarchy: OrganizationPerson[],
-    surveyUrl: string,
     onSurveyClick: (personId: string) => void,
     onResponseClick: (responseUrl: string) => void,
     surveyResponses: SurveyResponse[],
+    selectedSurvey?: SelectedSurvey,
     userId?: string,
     fullHierarchy?: OrganizationPerson[],
     allPeople?: OrganizationPerson[]
@@ -89,7 +90,7 @@ export class LayoutService {
         },
         data: {
           person,
-          surveyUrl,
+          selectedSurvey,
           onSurveyClick,
           onResponseClick,
           surveyResponse,

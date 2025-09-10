@@ -6,9 +6,12 @@ import ReactFlow, {
   Background,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   ConnectionMode,
   ReactFlowProvider,
   Panel,
+  NodeChange,
+  EdgeChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
@@ -19,6 +22,9 @@ import {
   tokens,
   Button,
   Text,
+  Card,
+  CardHeader,
+  CardPreview,
 } from "@fluentui/react-components";
 import { PersonNode } from "./PersonNode";
 import { OrganizationService } from "../services/OrganizationService";
@@ -27,27 +33,87 @@ import {
   OrganizationPerson,
   HierarchyFilterOptions,
   SurveyResponse,
+  Survey,
+  SelectedSurvey,
 } from "../types/OrganizationTypes";
-import { Filter20Regular, Organization20Regular } from "@fluentui/react-icons";
+import { Filter20Regular, Organization20Regular, Poll20Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
   container: {
-    width: "80vw",
-    height: "60vh",
-    //minHeight: '400px',
-    maxHeight: "90vh",
+    width: "1600px", // Stałe wymiary - szerokość
+    height: "768px", // Stałe wymiary - wysokość
     display: "flex",
-    flexDirection: "column",
-    maxWidth: "90vw",
+    flexDirection: "row",
+    overflow: "hidden",
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
     borderRadius: tokens.borderRadiusMedium,
   },
+  mainContent: {
+    flex: "1 1 80%",
+    display: "flex",
+    flexDirection: "column",
+    minWidth: "0", // Prevents flex item from overflowing
+    height: "100%",
+  },
+  reactFlowContainer: {
+    width: "100%",
+    height: "720px", // Explicit height dla ReactFlow (768px - margines)
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusSmall,
+  },
+  surveyPanel: {
+    flex: "0 0 20%",
+    minWidth: "240px",
+    height: "100%",
+    overflow: "auto",
+    ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  surveyPanelHeader: {
+    ...shorthands.padding("12px"),
+    ...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke2),
+    backgroundColor: tokens.colorNeutralBackground1,
+    display: "flex",
+    alignItems: "center",
+    ...shorthands.gap("8px"),
+  },
+  surveyList: {
+    flex: "1 1 auto",
+    ...shorthands.padding("8px"),
+    ...shorthands.overflow("auto"),
+    display: "flex",
+    flexDirection: "column",
+    ...shorthands.gap("4px"),
+  },
+  surveyItem: {
+    ...shorthands.padding("8px"),
+    ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
+    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: tokens.colorNeutralBackground1,
+    cursor: "pointer",
+    ":hover": {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
+  },
+  surveyItemSelected: {
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.border("1px", "solid", tokens.colorBrandStroke1),
+    ":hover": {
+      backgroundColor: tokens.colorBrandBackground2Hover,
+    },
+  },
   reactFlowWrapper: {
     width: "100%",
     height: "100%",
-    minHeight: "400px",
     flex: "1 1 auto",
+    position: "relative",
+    "& .react-flow": {
+      width: "100%",
+      height: "100%",
+    },
   },
   panel: {
     backgroundColor: tokens.colorNeutralBackground1,
@@ -85,24 +151,126 @@ const nodeTypes = {
   person: PersonNode,
 };
 
+// Komponent wewnętrzny z ReactFlow hookami
+const ReactFlowContent: React.FC<{
+  nodes: Node[];
+  edges: Edge[];
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  styles: ReturnType<typeof useStyles>;
+  userId?: string;
+  showOnlyTeam: boolean;
+  allPeople: OrganizationPerson[];
+  hierarchy: OrganizationPerson[];
+  toggleTeamFilter: () => void;
+  renderFilterInfo: () => React.ReactElement;
+}> = ({
+  nodes,
+  edges,
+  onNodesChange,
+  onEdgesChange,
+  styles,
+  userId,
+  showOnlyTeam,
+  toggleTeamFilter,
+  renderFilterInfo,
+}) => {
+  const reactFlowInstance = useReactFlow();
+
+  // Auto fitView po załadowaniu węzłów
+  React.useEffect(() => {
+    if (reactFlowInstance && nodes.length > 0) {
+      const timeoutId = setTimeout(() => {
+        reactFlowInstance.fitView({
+          padding: 0.1,
+          minZoom: 0.1,
+          maxZoom: 1.5,
+        });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [reactFlowInstance, nodes.length]);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={nodeTypes}
+      connectionMode={ConnectionMode.Loose}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={true}
+      selectNodesOnDrag={false}
+      panOnDrag={true}
+      zoomOnScroll={true}
+      zoomOnPinch={true}
+      fitView
+      fitViewOptions={{
+        padding: 0.1,
+        minZoom: 0.1,
+        maxZoom: 1.5,
+      }}
+      minZoom={0.1}
+      maxZoom={2}
+      style={{ width: '100%', height: '100%' }}
+    >
+      <Background />
+
+      <Panel position="top-left" className={styles.panel}>
+        <Organization20Regular />
+        {renderFilterInfo()}
+
+        {userId && (
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={<Filter20Regular />}
+            onClick={toggleTeamFilter}
+          >
+            {showOnlyTeam ? "Pokaż wszystkich" : "Tylko mój zespół"}
+          </Button>
+        )}
+      </Panel>
+
+      <Panel
+        position="top-left"
+        className={styles.panel}
+        style={{
+          top: 180,
+          left: -14,
+          background: "transparent",
+          border: "lightgray",
+          padding: 0,
+        }}
+      >
+        <Controls />
+      </Panel>
+    </ReactFlow>
+  );
+};
+
 export interface OrganizationTreeProps {
   dataSet: ComponentFramework.PropertyTypes.DataSet;
   surveyResponsesDataSet: ComponentFramework.PropertyTypes.DataSet;
-  surveyUrl: string;
-  surveyId: string;
+  surveysDataSet: ComponentFramework.PropertyTypes.DataSet;
+  projectId?: string;
   userId?: string;
   onSurveyClick: (personId: string, surveyUrl: string) => void;
   onResponseClick: (responseUrl: string) => void;
+  onSurveyChange?: () => void;
 }
 
 export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   dataSet,
   surveyResponsesDataSet,
-  surveyUrl,
-  surveyId,
+  surveysDataSet,
+  projectId,
   userId,
   onSurveyClick,
   onResponseClick,
+  onSurveyChange,
 }) => {
   const styles = useStyles();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -116,6 +284,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   const [surveyResponses, setSurveyResponses] = React.useState<
     SurveyResponse[]
   >([]);
+  const [surveys, setSurveys] = React.useState<Survey[]>([]);
+  const [selectedSurvey, setSelectedSurvey] = React.useState<SelectedSurvey | null>(null);
   const [isLoadingAllData, setIsLoadingAllData] = React.useState(false);
 
   // Funkcja do ładowania wszystkich stron danych
@@ -151,10 +321,12 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   // Callback dla kliknięcia przycisku ankiety
   const handleSurveyClick = React.useCallback(
     (personId: string) => {
-      const fullSurveyUrl = `${surveyUrl}&ctx=%7B"personId"%3A"${personId}"%7D`;
-      onSurveyClick(personId, fullSurveyUrl);
+      if (selectedSurvey?.url) {
+        const fullSurveyUrl = `${selectedSurvey.url}&ctx=%7B"personId"%3A"${personId}"%7D`;
+        onSurveyClick(personId, fullSurveyUrl);
+      }
     },
-    [surveyUrl, onSurveyClick]
+    [selectedSurvey?.url, onSurveyClick]
   );
 
   // Budowanie hierarchii i layoutu
@@ -191,10 +363,10 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       edges: layoutEdges,
     } = LayoutService.createTreeLayout(
       organizationHierarchy,
-      surveyUrl,
       handleSurveyClick,
       handleResponseClick,
       surveyResponses,
+      selectedSurvey ?? undefined,
       userId,
       fullOrganizationHierarchy,
       allPeopleData
@@ -204,7 +376,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     setEdges(layoutEdges);
   }, [
     dataSet,
-    surveyUrl,
+    selectedSurvey,
     userId,
     showOnlyTeam,
     surveyResponses,
@@ -228,22 +400,75 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   React.useEffect(() => {
     if (
       surveyResponsesDataSet?.sortedRecordIds?.length &&
-      surveyResponsesDataSet.sortedRecordIds.length > 0
+      surveyResponsesDataSet.sortedRecordIds.length > 0 &&
+      selectedSurvey?.id
     ) {
       const responses = OrganizationService.processSurveyResponses(
         surveyResponsesDataSet,
-        surveyId
+        selectedSurvey.id
       );
       setSurveyResponses(responses);
     } else {
       setSurveyResponses([]);
     }
-  }, [surveyResponsesDataSet, surveyId]);
+  }, [surveyResponsesDataSet, selectedSurvey?.id]);
+
+  // Ładowanie listy ankiet
+  React.useEffect(() => {
+    if (surveysDataSet?.records) {
+      const loadedSurveys: Survey[] = [];
+      
+      for (const recordId of surveysDataSet.sortedRecordIds || []) {
+        const record = surveysDataSet.records[recordId];
+        const survey: Survey = {
+          msfp_surveyid: record.getValue("msfp_surveyid") as string,
+          msfp_name: record.getValue("msfp_name") as string,
+          msfp_surveyurl: record.getValue("msfp_surveyurl") as string,
+        };
+        loadedSurveys.push(survey);
+      }
+      
+      setSurveys(loadedSurveys);
+      
+      // Automatycznie wybierz pierwszą ankietę jeśli nie ma wybranej
+      if (loadedSurveys.length > 0 && !selectedSurvey) {
+        const firstSurvey = {
+          id: loadedSurveys[0].msfp_surveyid,
+          name: loadedSurveys[0].msfp_name,
+          url: loadedSurveys[0].msfp_surveyurl ?? "",
+        };
+        setSelectedSurvey(firstSurvey);
+        
+        // Wywołaj callback przy automatycznym wyborze
+        if (onSurveyChange) {
+          onSurveyChange();
+        }
+      }
+    } else {
+      setSurveys([]);
+      setSelectedSurvey(null);
+    }
+  }, [surveysDataSet, selectedSurvey]);
 
   // Toggle filtrowania zespołu
   const toggleTeamFilter = React.useCallback(() => {
     setShowOnlyTeam(!showOnlyTeam);
   }, [showOnlyTeam]);
+
+  // Obsługa wyboru ankiety
+  const handleSurveySelect = React.useCallback((survey: Survey) => {
+    const newSelectedSurvey = {
+      id: survey.msfp_surveyid,
+      name: survey.msfp_name,
+      url: survey.msfp_surveyurl ?? "",
+    };
+    setSelectedSurvey(newSelectedSurvey);
+    
+    // Wywołaj callback do wymuszenia odświeżenia widoku
+    if (onSurveyChange) {
+      onSurveyChange();
+    }
+  }, [onSurveyChange]);
 
   // Renderowanie informacji o filtrze
   const renderFilterInfo = () => {
@@ -305,65 +530,56 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   return (
     <FluentProvider theme={webLightTheme}>
       <div className={styles.container}>
-        <div className={styles.reactFlowWrapper}>
-          <ReactFlowProvider>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              nodeTypes={nodeTypes}
-              connectionMode={ConnectionMode.Loose}
-              nodesDraggable={false}
-              nodesConnectable={false}
-              elementsSelectable={true}
-              selectNodesOnDrag={false}
-              panOnDrag={true}
-              zoomOnScroll={true}
-              zoomOnPinch={true}
-              fitView
-              fitViewOptions={{
-                padding: 0.1,
-                minZoom: 0.1,
-                maxZoom: 1.5,
-              }}
-              minZoom={0.1}
-              maxZoom={2}
-              defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-            >
-              <Background />
-
-              <Panel position="top-left" className={styles.panel}>
-                <Organization20Regular />
-                {renderFilterInfo()}
-
-                {userId && (
-                  <Button
-                    appearance="subtle"
-                    size="small"
-                    icon={<Filter20Regular />}
-                    onClick={toggleTeamFilter}
-                  >
-                    {showOnlyTeam ? "Pokaż wszystkich" : "Tylko mój zespół"}
-                  </Button>
-                )}
-              </Panel>
-
-              <Panel
-                position="top-left"
-                className={styles.panel}
-                style={{
-                  top: 180,
-                  left: -14,
-                  background: "transparent",
-                  border: "lightgray",
-                  padding: 0,
-                }}
-              >
-                <Controls />
-              </Panel>
-            </ReactFlow>
-          </ReactFlowProvider>
+        <div className={styles.mainContent}>
+          {/* ReactFlow kontener z jawnie ustawionymi wymiarami w px zgodnie z dokumentacją */}
+          <div style={{ width: '1280px', height: '720px' }}>
+            <ReactFlowProvider>
+              <ReactFlowContent
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                styles={styles}
+                userId={userId}
+                showOnlyTeam={showOnlyTeam}
+                allPeople={allPeople}
+                hierarchy={hierarchy}
+                toggleTeamFilter={toggleTeamFilter}
+                renderFilterInfo={renderFilterInfo}
+              />
+            </ReactFlowProvider>
+          </div>
+        </div>
+        
+        {/* Lista ankiet z jawnie ustawionymi wymiarami - 20% szerokości */}
+        <div style={{ width: '320px', height: '720px' }}>
+          <div className={styles.surveyPanel}>
+            <div className={styles.surveyPanelHeader}>
+              <Poll20Regular />
+              <Text weight="semibold">Ankiety ({surveys.length})</Text>
+            </div>
+            <div className={styles.surveyList}>
+              {surveys.length === 0 ? (
+                <Text>Brak dostępnych ankiet</Text>
+              ) : (
+                surveys.map((survey) => (
+                <Card
+                  key={survey.msfp_surveyid}
+                  className={`${styles.surveyItem} ${
+                    selectedSurvey?.id === survey.msfp_surveyid ? styles.surveyItemSelected : ""
+                  }`}
+                  onClick={() => handleSurveySelect(survey)}
+                  appearance="subtle"
+                >
+                  <CardHeader
+                    header={<Text weight="medium">{survey.msfp_name}</Text>}
+                    description={selectedSurvey?.id === survey.msfp_surveyid ? "Wybrana ankieta" : "Kliknij aby wybrać"}
+                  />
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
         </div>
       </div>
     </FluentProvider>

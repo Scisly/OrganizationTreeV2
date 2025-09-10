@@ -15,7 +15,7 @@ import {
   QuestionCircle20Regular,
   DocumentSearch20Regular,
 } from "@fluentui/react-icons";
-import { OrganizationPerson, SurveyResponse } from "../types/OrganizationTypes";
+import { OrganizationPerson, SurveyResponse, SelectedSurvey } from "../types/OrganizationTypes";
 import { OrganizationService } from "../services/OrganizationService";
 import { Glow, GlowCapture } from "@codaworks/react-glow";
 
@@ -121,7 +121,7 @@ const useStyles = makeStyles({
 export interface PersonNodeProps {
   data: {
     person: OrganizationPerson;
-    surveyUrl: string;
+    selectedSurvey?: SelectedSurvey;
     onSurveyClick: (personId: string) => void;
     onResponseClick?: (responseUrl: string) => void;
     surveyResponse?: SurveyResponse;
@@ -136,7 +136,7 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
   const styles = useStyles();
   const {
     person,
-    surveyUrl,
+    selectedSurvey,
     onSurveyClick,
     onResponseClick,
     surveyResponse,
