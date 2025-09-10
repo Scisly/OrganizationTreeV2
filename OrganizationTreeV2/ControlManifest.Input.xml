@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="OrganizationTreeV2" constructor="OrganizationTreeV2" version="0.0.1" display-name-key="OrganizationTreeV2" description-key="OrganizationTreeV2 description" control-type="virtual" >
+  <control namespace="OrganizationTreeV2" constructor="OrganizationTreeV2" version="0.0.2" display-name-key="OrganizationTreeV2" description-key="OrganizationTreeV2 description" control-type="virtual" >
     <!--external-service-usage node declares whether this 3rd party PCF control is using external service or not, if yes, this control will be considered as premium and please also add the external domain it is using.
     If it is not using any external service, please set the enabled="false" and DO NOT add any domain below. The "enabled" will be false by default.
     Example1:
@@ -18,8 +18,16 @@
       -->
     </external-service-usage>
     <!-- Properties for the organization tree control -->
-    <property name="surveyUrl" display-name-key="Survey_URL" description-key="URL for the survey" of-type="SingleLine.Text" usage="input" required="true" />
-    <property name="surveyId" display-name-key="Survey_ID" description-key="ID for the survey" of-type="SingleLine.Text" usage="input" required="true" />
+    <property name="projectId" display-name-key="Project_ID" description-key="Customer Voice project ID for filtering surveys" of-type="SingleLine.Text" usage="input" required="false" />
+    
+    <!-- dataset node represents surveys from Customer Voice project -->
+    <data-set name="surveysDataSet" display-name-key="Surveys_Dataset">
+      <property-set name="msfp_surveyid" display-name-key="Survey_ID" description-key="Survey unique identifier" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="msfp_name" display-name-key="Survey_Name" description-key="Survey name" of-type="SingleLine.Text" usage="bound" required="true" />
+      <property-set name="msfp_surveyurl" display-name-key="Survey_URL" description-key="Survey URL" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="msfp_projectid" display-name-key="Project_ID_Field" description-key="Project ID for filtering" of-type="SingleLine.Text" usage="bound" required="false" />
+    </data-set>
+
 
     <!-- dataset node represents organization view records -->
     <data-set name="organizationDataSet" display-name-key="Organization_Dataset">
@@ -39,6 +47,7 @@
       <property-set name="responseUrl" display-name-key="Response_URL" description-key="URL to view survey response" of-type="SingleLine.Text" usage="bound" required="false" />
       <property-set name="responseDate" display-name-key="Response_Date" description-key="Date when survey was completed" of-type="DateAndTime.DateAndTime" usage="bound" required="false" />
     </data-set>
+
 
     <resources>
       <code path="index.ts" order="1"/>

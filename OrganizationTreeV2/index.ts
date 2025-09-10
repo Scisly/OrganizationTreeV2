@@ -7,6 +7,8 @@ export class OrganizationTreeV2
   private notifyOutputChanged: () => void;
   private context: ComponentFramework.Context<IInputs>;
   private userId: string;
+  private containerWidth: number;
+  private containerHeight: number;  
 
   /**
    * Empty constructor.
@@ -29,6 +31,10 @@ export class OrganizationTreeV2
   ): void {
     this.notifyOutputChanged = notifyOutputChanged;
     context.parameters.organizationDataSet.paging.setPageSize(1500);
+    context.parameters.surveyResponsesDataSet.paging.setPageSize(1500);
+    context.parameters.surveysDataSet.paging.setPageSize(1500);
+    this.containerWidth = context.mode.allocatedWidth;
+    this.containerHeight = context.mode.allocatedHeight;
     this.context = context;
     this.userId = context.userSettings.userId;
   }
@@ -51,13 +57,18 @@ export class OrganizationTreeV2
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const surveyUrl = (context.parameters.surveyUrl as any)?.raw ?? "";
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const surveyId = (context.parameters.surveyId as any)?.raw ?? "";
+    const projectId = (context.parameters.projectId as any)?.raw ?? "";
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const organizationDataSet = context.parameters.organizationDataSet as any;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const surveyResponsesDataSet = context.parameters.surveyResponsesDataSet as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    const surveysDataSet = context.parameters.surveysDataSet as any;
+
+    // Callback dla wymuszenia odświeżenia widoku po zmianie ankiety
+    const handleSurveyChange = () => {
+      this.notifyOutputChanged();
+    };
 
     // Callback dla otwarcia ankiety
     const handleSurveyClick = (personId: string, fullSurveyUrl: string) => {
@@ -81,12 +92,13 @@ export class OrganizationTreeV2
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       surveyResponsesDataSet: surveyResponsesDataSet,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      surveyUrl: surveyUrl,
+      surveysDataSet: surveysDataSet,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      surveyId: surveyId,
+      projectId: projectId,
       userId: this.userId,
       onSurveyClick: handleSurveyClick,
       onResponseClick: handleResponseClick,
+      onSurveyChange: handleSurveyChange,
     });
   }
 

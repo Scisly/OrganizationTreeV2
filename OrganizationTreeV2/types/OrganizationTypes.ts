@@ -16,7 +16,7 @@ export interface OrganizationNode {
   position: { x: number; y: number };
   data: {
     person: OrganizationPerson;
-    surveyUrl: string;
+    selectedSurvey?: SelectedSurvey;
     onSurveyClick: (personId: string) => void;
     onResponseClick?: (responseUrl: string) => void;
     userId?: string;
@@ -45,4 +45,17 @@ export interface SurveyResponse {
   personId: string;
   responseUrl?: string;
   responseDate?: Date;
+}
+
+export interface Survey {
+  msfp_surveyid: string;
+  msfp_name: string;
+  msfp_surveyurl?: string;
+  msfp_projectid?: string;
+}
+
+export interface SelectedSurvey {
+  id: string;
+  name: string;
+  url: string;
 }
