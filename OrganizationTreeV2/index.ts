@@ -1,4 +1,4 @@
-import { IInputs, IOutputs } from "./generated/ManifestTypes";
+﻿import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import { OrganizationTree } from "./components/OrganizationTree";
 import * as React from "react";
 
@@ -65,24 +65,113 @@ export class OrganizationTreeV2
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const surveysDataSet = context.parameters.surveysDataSet as any;
 
-    // Callback dla wymuszenia odświeżenia widoku po zmianie ankiety
+    // Callback dla wymuszenia odĹ›wieĹĽenia widoku po zmianie ankiety
     const handleSurveyChange = () => {
       this.notifyOutputChanged();
     };
 
     // Callback dla otwarcia ankiety
     const handleSurveyClick = (personId: string, fullSurveyUrl: string) => {
-      // Otwórz ankietę w nowym oknie/tab
+      // OtwĂłrz ankietÄ™ w nowym oknie/tab
       if (fullSurveyUrl) {
         window.open(fullSurveyUrl, "_blank", "noopener,noreferrer");
       }
     };
 
-    // Callback dla wyświetlenia odpowiedzi
-    const handleResponseClick = (responseUrl: string) => {
-      // Otwórz odpowiedź w nowym oknie/tab
-      if (responseUrl) {
-        window.open(responseUrl, "_blank", "noopener,noreferrer");
+    // Callback dla wyÅ›wietlenia odpowiedzi - XRM.NAVIGATION.NAVIGATETO MODAL DIALOG IMPLEMENTATION
+    const handleResponseClick = (responseId: string) => {
+      console.log("Opening survey response modal using Xrm.Navigation.navigateTo:", responseId);
+      
+      if (responseId) {
+        try {
+          // Check if global Xrm object is available (Client API)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          const xrmNav = (window as any).Xrm?.Navigation;
+          
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (xrmNav?.navigateTo) {
+            console.log("Using Xrm.Navigation.navigateTo for modal dialog");
+            
+            // Use Xrm.Navigation.navigateTo to open existing record in dialog
+            const pageInput = {
+              pageType: "entityrecord",
+              entityName: "msfp_surveyresponse",
+              entityId: responseId
+            };
+            
+            const navigationOptions = {
+              target: 2, // Open in dialog
+              height: { value: 80, unit: "%" },
+              width: { value: 70, unit: "%" },
+              position: 1 // Center
+            };
+            
+            console.log("Calling Xrm.Navigation.navigateTo with:", { pageInput, navigationOptions });
+            
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            void xrmNav.navigateTo(pageInput, navigationOptions).then(
+              (success: unknown) => {
+                console.log("Modal dialog opened successfully with navigateTo:", success);
+                return success;
+              },
+              (error: unknown) => {
+                console.error("Error opening dialog with navigateTo:", error);
+                
+                // Fallback to PCF openForm
+                console.log("Falling back to PCF openForm");
+                fallbackToOpenForm(responseId, context);
+              }
+            );
+          } else {
+            console.warn("Xrm.Navigation.navigateTo not available, using PCF openForm");
+            fallbackToOpenForm(responseId, context);
+          }
+        } catch (error) {
+          console.error("Error using Xrm.Navigation.navigateTo:", error);
+          fallbackToOpenForm(responseId, context);
+        }
+      } else {
+        console.warn("Missing responseId:", responseId);
+      }
+    };
+
+    // Helper method for fallback to PCF openForm
+    const fallbackToOpenForm = (responseId: string, context: ComponentFramework.Context<IInputs>) => {
+      if (responseId && context.navigation) {
+        try {
+          const formOptions: ComponentFramework.NavigationApi.EntityFormOptions = {
+            entityName: 'msfp_surveyresponse',
+            entityId: responseId,
+            openInNewWindow: false,
+            height: 600,
+            width: 1200
+          };
+          
+          console.log("Fallback: Calling PCF openForm with formOptions:", formOptions);
+          
+          context.navigation.openForm(formOptions).then(
+            (success) => {
+              console.log("Fallback: PCF openForm successful:", success);
+              return success;
+            }
+          ).catch(
+            (error) => {
+              console.error("Fallback: PCF openForm failed:", error);
+              
+              // Final fallback to window.open
+              const fallbackUrl = `/main.aspx?etn=msfp_surveyresponse&id=${responseId}&newWindow=true&pagetype=entityrecord`;
+              console.log("Final fallback: Using window.open with URL:", fallbackUrl);
+              window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+            }
+          );
+        } catch (error) {
+          console.error("Fallback: Error with PCF openForm:", error);
+          
+          // Final fallback to window.open
+          const fallbackUrl = `/main.aspx?etn=msfp_surveyresponse&id=${responseId}&newWindow=true&pagetype=entityrecord`;
+          console.log("Final fallback: Using window.open with URL:", fallbackUrl);
+          window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+        }
       }
     };
 

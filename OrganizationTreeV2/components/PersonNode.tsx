@@ -123,7 +123,7 @@ export interface PersonNodeProps {
     person: OrganizationPerson;
     selectedSurvey?: SelectedSurvey;
     onSurveyClick: (personId: string) => void;
-    onResponseClick?: (responseUrl: string) => void;
+    onResponseClick?: (responseId: string) => void;
     surveyResponse?: SurveyResponse;
     userId?: string;
     fullHierarchy: OrganizationPerson[];
@@ -157,8 +157,42 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
     event.stopPropagation();
     event.preventDefault();
     event.nativeEvent.stopImmediatePropagation();
-    if (surveyResponse?.responseUrl && onResponseClick) {
-      onResponseClick(surveyResponse.responseUrl);
+    
+    console.log("PersonNode: Response button clicked", {
+      personName: person.name,
+      personId: person.id,
+      responseId: surveyResponse?.responseId,
+      responseUrl: surveyResponse?.responseUrl,
+      hasOnResponseClick: !!onResponseClick,
+      surveyResponse: surveyResponse
+    });
+    
+    // Priority: use responseId with navigateTo modal if available
+    if (surveyResponse?.responseId && onResponseClick) {
+      console.log("PersonNode: Using Xrm.Navigation.navigateTo modal with responseId:", surveyResponse.responseId);
+      try {
+        onResponseClick(surveyResponse.responseId);
+      } catch (error) {
+        console.error("PersonNode: Error calling onResponseClick:", error);
+        // Fallback to URL if responseId fails
+        if (surveyResponse?.responseUrl) {
+          console.log("PersonNode: Falling back to responseUrl after error");
+          window.open(surveyResponse.responseUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    } 
+    // Fallback: use responseUrl with window.open
+    else if (surveyResponse?.responseUrl) {
+      console.log("PersonNode: Using fallback window.open with responseUrl:", surveyResponse.responseUrl);
+      window.open(surveyResponse.responseUrl, "_blank", "noopener,noreferrer");
+    } 
+    // Error case: no response data available
+    else {
+      console.error("PersonNode: No response data available", {
+        responseId: surveyResponse?.responseId,
+        responseUrl: surveyResponse?.responseUrl,
+        hasOnResponseClick: !!onResponseClick
+      });
     }
   };
 
@@ -172,8 +206,8 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
       allPeople
     );
 
-  // Sprawdź czy istnieje odpowiedź dla tej osoby
-  const hasResponse = surveyResponse?.responseUrl;
+  // Sprawdź czy istnieje odpowiedź dla tej osoby - priorytet responseId, fallback responseUrl
+  const hasResponse = surveyResponse?.responseId ?? surveyResponse?.responseUrl;
 
   // Sprawdź czy pokazać wskazówkę ankiety (tylko dla zespołu aktualnego użytkownika)
   const shouldShowSurveyIndicator = shouldShowSurveyButton;
