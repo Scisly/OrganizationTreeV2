@@ -462,6 +462,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           msfp_surveyid: record.getValue("msfp_surveyid") as string,
           msfp_name: record.getValue("msfp_name") as string,
           msfp_surveyurl: record.getValue("msfp_surveyurl") as string,
+          msfp_description: record.getValue("msfp_description") as string,
         };
         loadedSurveys.push(survey);
       }
@@ -474,6 +475,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           id: loadedSurveys[0].msfp_surveyid,
           name: loadedSurveys[0].msfp_name,
           url: loadedSurveys[0].msfp_surveyurl ?? "",
+          description: loadedSurveys[0].msfp_description ?? "",
         };
         setSelectedSurvey(firstSurvey);
         
@@ -499,6 +501,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       id: survey.msfp_surveyid,
       name: survey.msfp_name,
       url: survey.msfp_surveyurl ?? "",
+      description: survey.msfp_description ?? "",
     };
     setSelectedSurvey(newSelectedSurvey);
     
