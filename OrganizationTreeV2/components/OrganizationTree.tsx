@@ -36,12 +36,10 @@ import {
   Survey,
   SelectedSurvey,
 } from "../types/OrganizationTypes";
-import { Filter20Regular, Organization20Regular, Poll20Regular } from "@fluentui/react-icons";
+import { CommentText16Filled, Document20Regular, Filter20Regular, Organization20Regular, Poll20Regular, TextDescription20Regular, Checkmark16Filled, Checkmark16Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
   container: {
-    width: "1600px", // Stałe wymiary - szerokość
-    height: "768px", // Stałe wymiary - wysokość
     display: "flex",
     flexDirection: "row",
     overflow: "hidden",
@@ -50,7 +48,6 @@ const useStyles = makeStyles({
     borderRadius: tokens.borderRadiusMedium,
   },
   mainContent: {
-    flex: "1 1 80%",
     display: "flex",
     flexDirection: "column",
     minWidth: "0", // Prevents flex item from overflowing
@@ -58,13 +55,20 @@ const useStyles = makeStyles({
   },
   reactFlowContainer: {
     width: "100%",
-    height: "720px", // Explicit height dla ReactFlow (768px - margines)
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusSmall,
   },
   surveyPanel: {
-    flex: "0 0 20%",
-    minWidth: "240px",
+    minWidth: "200px",
+    height: "100%",
+    overflow: "auto",
+    ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  descriptionPanel: {
+    minWidth: "200px",
     height: "100%",
     overflow: "auto",
     ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
@@ -80,6 +84,14 @@ const useStyles = makeStyles({
     alignItems: "center",
     ...shorthands.gap("8px"),
   },
+  descriptionPanelHeader: {
+    ...shorthands.padding("12px"),
+    ...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke2),
+    backgroundColor: tokens.colorNeutralBackground1,
+    display: "flex",
+    alignItems: "center",
+    ...shorthands.gap("8px"),
+  },
   surveyList: {
     flex: "1 1 auto",
     ...shorthands.padding("8px"),
@@ -87,6 +99,13 @@ const useStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     ...shorthands.gap("4px"),
+  },
+  descriptionContent: {
+    flex: "1 1 auto",
+    ...shorthands.padding("12px"),
+    ...shorthands.overflow("auto"),
+    whiteSpace: "pre-wrap",
+    wordWrap: "break-word",
   },
   surveyItem: {
     ...shorthands.padding("8px"),
@@ -104,6 +123,17 @@ const useStyles = makeStyles({
     ":hover": {
       backgroundColor: tokens.colorBrandBackground2Hover,
     },
+  },
+  surveyCardHeader: {
+    position: "relative",
+  },
+  selectedSurveyIcon: {
+    color: tokens.colorBrandForeground1,
+  },
+  surveyHeaderWithIcon: {
+    display: "flex",
+    alignItems: "center",
+    ...shorthands.gap("8px"),
   },
   reactFlowWrapper: {
     width: "100%",
@@ -145,6 +175,14 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
   },
 });
+
+// Stałe wymiary i wyliczenia dla layoutu
+const CONTAINER_WIDTH = 1600; // 1600 + 300
+const CONTAINER_HEIGHT = 768;
+const TREE_WIDTH = Math.floor(CONTAINER_WIDTH * 0.70); // 1330px
+const LIST_WIDTH = Math.floor(CONTAINER_WIDTH * 0.15); // 285px  
+const DESC_WIDTH = CONTAINER_WIDTH - TREE_WIDTH - LIST_WIDTH; // 285px (kompensacja zaokrągleń)
+const CONTENT_HEIGHT = 768; // 768 - margines
 
 // Typy węzłów dostępne w ReactFlow
 const nodeTypes = {
@@ -424,6 +462,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           msfp_surveyid: record.getValue("msfp_surveyid") as string,
           msfp_name: record.getValue("msfp_name") as string,
           msfp_surveyurl: record.getValue("msfp_surveyurl") as string,
+          msfp_description: record.getValue("msfp_description") as string,
         };
         loadedSurveys.push(survey);
       }
@@ -436,6 +475,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           id: loadedSurveys[0].msfp_surveyid,
           name: loadedSurveys[0].msfp_name,
           url: loadedSurveys[0].msfp_surveyurl ?? "",
+          description: loadedSurveys[0].msfp_description ?? "",
         };
         setSelectedSurvey(firstSurvey);
         
@@ -461,6 +501,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       id: survey.msfp_surveyid,
       name: survey.msfp_name,
       url: survey.msfp_surveyurl ?? "",
+      description: survey.msfp_description ?? "",
     };
     setSelectedSurvey(newSelectedSurvey);
     
@@ -515,7 +556,13 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   if (!dataSet?.sortedRecordIds?.length) {
     return (
       <FluentProvider theme={webLightTheme}>
-        <div className={styles.container}>
+        <div 
+          className={styles.container}
+          style={{
+            width: `${CONTAINER_WIDTH}px`,
+            height: `${CONTAINER_HEIGHT}px`,
+          }}
+        >
           <div className={styles.emptyState}>
             <Organization20Regular className={styles.emptyStateIcon} />
             <Text className={styles.emptyStateText}>
@@ -529,10 +576,28 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
   return (
     <FluentProvider theme={webLightTheme}>
-      <div className={styles.container}>
-        <div className={styles.mainContent}>
-          {/* ReactFlow kontener z jawnie ustawionymi wymiarami w px zgodnie z dokumentacją */}
-          <div style={{ width: '1280px', height: '720px' }}>
+      <div 
+        className={styles.container}
+        style={{
+          width: `${CONTAINER_WIDTH}px`,
+          height: `${CONTAINER_HEIGHT}px`,
+        }}
+      >
+        {/* Główna kolumna - drzewo organizacyjne (70%) */}
+        <div 
+          className={styles.mainContent}
+          style={{
+            width: `${TREE_WIDTH}px`,
+            height: `${CONTENT_HEIGHT}px`,
+          }}
+        >
+          <div 
+            className={styles.reactFlowContainer}
+            style={{
+              width: `${TREE_WIDTH}px`,
+              height: `${CONTENT_HEIGHT}px`,
+            }}
+          >
             <ReactFlowProvider>
               <ReactFlowContent
                 nodes={nodes}
@@ -551,35 +616,75 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           </div>
         </div>
         
-        {/* Lista ankiet z jawnie ustawionymi wymiarami - 20% szerokości */}
-        <div style={{ width: '320px', height: '720px' }}>
-          <div className={styles.surveyPanel}>
-            <div className={styles.surveyPanelHeader}>
-              <Poll20Regular />
-              <Text weight="semibold">Ankiety ({surveys.length})</Text>
-            </div>
-            <div className={styles.surveyList}>
-              {surveys.length === 0 ? (
-                <Text>Brak dostępnych ankiet</Text>
-              ) : (
-                surveys.map((survey) => (
-                <Card
-                  key={survey.msfp_surveyid}
-                  className={`${styles.surveyItem} ${
-                    selectedSurvey?.id === survey.msfp_surveyid ? styles.surveyItemSelected : ""
-                  }`}
-                  onClick={() => handleSurveySelect(survey)}
-                  appearance="subtle"
-                >
-                  <CardHeader
-                    header={<Text weight="medium">{survey.msfp_name}</Text>}
-                    description={selectedSurvey?.id === survey.msfp_surveyid ? "Wybrana ankieta" : "Kliknij aby wybrać"}
-                  />
-                </Card>
-              ))
+        {/* Kolumna ankiet (15%) */}
+        <div 
+          className={styles.surveyPanel}
+          style={{
+            width: `${LIST_WIDTH}px`,
+            height: `${CONTENT_HEIGHT}px`,
+          }}
+        >
+          <div className={styles.surveyPanelHeader}>
+            <Poll20Regular />
+            <Text weight="semibold">Ankiety ({surveys.length})</Text>
+          </div>
+          <div className={styles.surveyList}>
+            {surveys.length === 0 ? (
+              <Text>Brak dostępnych ankiet</Text>
+            ) : (
+              surveys.map((survey) => {
+                const isSelected = selectedSurvey?.id === survey.msfp_surveyid;
+                return (
+                  <Card
+                    key={survey.msfp_surveyid}
+                    className={`${styles.surveyItem} ${
+                      isSelected ? styles.surveyItemSelected : ""
+                    }`}
+                    onClick={() => handleSurveySelect(survey)}
+                    appearance="subtle"
+                  >
+                    <div className={styles.surveyCardHeader}>
+                      <CardHeader
+                        header={
+                          <div className={styles.surveyHeaderWithIcon}>
+                            {isSelected && (
+                              <Checkmark16Regular className={styles.selectedSurveyIcon} />
+                            )}
+                            <Text weight={isSelected ? "bold" : "medium"}>
+                              {survey.msfp_name}
+                            </Text>
+                          </div>
+                        }
+                      />
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>
+
+        {/* Nowa kolumna - opis ankiety (15%) */}
+        <div 
+          className={styles.descriptionPanel}
+          style={{
+            width: `${DESC_WIDTH}px`,
+            height: `${CONTENT_HEIGHT}px`,
+          }}
+        >
+          <div className={styles.descriptionPanelHeader}>
+            <TextDescription20Regular />
+            <Text weight="semibold">Opis ankiety</Text>
+          </div>
+          <div className={styles.descriptionContent}>
+            {selectedSurvey?.description ? (
+              <Text weight="bold">{selectedSurvey.description}</Text>
+            ) : (
+              <Text style={{ color: tokens.colorNeutralForeground3 }}>
+                Brak opisu dla wybranej ankiety
+              </Text>
+            )}
+          </div>
         </div>
       </div>
     </FluentProvider>

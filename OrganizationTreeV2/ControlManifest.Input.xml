@@ -26,6 +26,7 @@
       <property-set name="msfp_name" display-name-key="Survey_Name" description-key="Survey name" of-type="SingleLine.Text" usage="bound" required="true" />
       <property-set name="msfp_surveyurl" display-name-key="Survey_URL" description-key="Survey URL" of-type="SingleLine.Text" usage="bound" required="false" />
       <property-set name="msfp_projectid" display-name-key="Project_ID_Field" description-key="Project ID for filtering" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="msfp_description" display-name-key="Survey_Description_Field" description-key="Survey description for filtering" of-type="Multiple" usage="bound" required="false" />
     </data-set>
 
 
