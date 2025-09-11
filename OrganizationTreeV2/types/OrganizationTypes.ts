@@ -18,7 +18,7 @@ export interface OrganizationNode {
     person: OrganizationPerson;
     selectedSurvey?: SelectedSurvey;
     onSurveyClick: (personId: string) => void;
-    onResponseClick?: (responseUrl: string) => void;
+    onResponseClick?: (responseId: string) => void;
     userId?: string;
     fullHierarchy: OrganizationPerson[];
     allPeople?: OrganizationPerson[];
