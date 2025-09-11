@@ -187,6 +187,7 @@ export class OrganizationTreeV2
       onSurveyClick: handleSurveyClick,
       onResponseClick: handleResponseClick,
       onSurveyChange: handleSurveyChange,
+      
     });
   }
 
