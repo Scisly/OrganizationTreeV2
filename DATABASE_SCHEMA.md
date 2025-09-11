@@ -17,24 +17,14 @@ This dataset contains the hierarchical organizational structure with employee in
 
 #### Required Fields
 
-```mermaid
-graph TB
-    subgraph "Organization Dataset Fields"
-        A["🔑 id<br/>Record ID<br/>SingleLine.Text<br/>✅ Required"]
-        B["👤 name<br/>Person Name<br/>SingleLine.Text<br/>✅ Required"]
-        C["💼 position<br/>Position Title<br/>SingleLine.Text<br/>❌ Optional"]
-        D["👨‍💼 managerId<br/>Manager ID<br/>SingleLine.Text<br/>❌ Optional"]
-        E["📧 email<br/>Email<br/>SingleLine.Text<br/>❌ Optional"]
-        F["🆔 ag_userid<br/>User ID<br/>SingleLine.Text<br/>❌ Optional"]
-    end
-    
-    style A fill:#ff9999
-    style B fill:#ff9999
-    style C fill:#99ccff
-    style D fill:#99ccff
-    style E fill:#99ccff
-    style F fill:#99ccff
-```
+| Field Name | Display Name | Type | Required | Description |
+|------------|--------------|------|----------|-------------|
+| `id` | Record ID | SingleLine.Text | ✅ | Unique identifier for the person/employee |
+| `name` | Person Name | SingleLine.Text | ✅ | Full name of the employee |
+| `position` | Position Title | SingleLine.Text | ❌ | Job title/position |
+| `managerId` | Manager ID | SingleLine.Text | ❌ | ID of the direct manager (references another record's `id`) |
+| `email` | Email | SingleLine.Text | ❌ | Email address |
+| `ag_userid` | User ID | SingleLine.Text | ❌ | System user ID (typically GUID format) |
 
 #### Data Structure Example
 ```json
@@ -60,22 +50,13 @@ This dataset contains Microsoft Customer Voice survey definitions.
 
 #### Required Fields
 
-```mermaid
-graph TB
-    subgraph "Surveys Dataset Fields"
-        A["🔑 msfp_surveyid<br/>Survey ID<br/>SingleLine.Text<br/>✅ Required"]
-        B["📋 msfp_name<br/>Survey Name<br/>SingleLine.Text<br/>✅ Required"]
-        C["🔗 msfp_surveyurl<br/>Survey URL<br/>SingleLine.Text<br/>❌ Optional"]
-        D["📁 msfp_projectid<br/>Project ID<br/>SingleLine.Text<br/>❌ Optional"]
-        E["📝 msfp_description<br/>Survey Description<br/>Multiple<br/>❌ Optional"]
-    end
-    
-    style A fill:#ff9999
-    style B fill:#ff9999
-    style C fill:#99ccff
-    style D fill:#99ccff
-    style E fill:#99ccff
-```
+| Field Name | Display Name | Type | Required | Description |
+|------------|--------------|------|----------|-------------|
+| `msfp_surveyid` | Survey ID | SingleLine.Text | ✅ | Unique survey identifier |
+| `msfp_name` | Survey Name | SingleLine.Text | ✅ | Display name of the survey |
+| `msfp_surveyurl` | Survey URL | SingleLine.Text | ❌ | Direct URL to the survey |
+| `msfp_projectid` | Project ID | SingleLine.Text | ❌ | Customer Voice project identifier |
+| `msfp_description` | Survey Description | Multiple | ❌ | Detailed description of the survey purpose |
 
 #### Data Structure Example
 ```json
@@ -96,22 +77,13 @@ This dataset tracks individual survey responses from employees.
 
 #### Required Fields
 
-```mermaid
-graph TB
-    subgraph "Survey Responses Dataset Fields"
-        A["🔑 responseId<br/>Response ID<br/>SingleLine.Text<br/>✅ Required"]
-        B["🔗 survey_id<br/>Survey ID Response<br/>SingleLine.Text<br/>✅ Required"]
-        C["👤 personId<br/>Person ID Response<br/>SingleLine.Text<br/>✅ Required"]
-        D["🔗 responseUrl<br/>Response URL<br/>SingleLine.Text<br/>❌ Optional"]
-        E["📅 responseDate<br/>Response Date<br/>DateAndTime<br/>❌ Optional"]
-    end
-    
-    style A fill:#ff9999
-    style B fill:#ff9999
-    style C fill:#ff9999
-    style D fill:#99ccff
-    style E fill:#99ccff
-```
+| Field Name | Display Name | Type | Required | Description |
+|------------|--------------|------|----------|-------------|
+| `responseId` | Response ID | SingleLine.Text | ✅ | Unique response identifier |
+| `survey_id` | Survey ID Response | SingleLine.Text | ✅ | References `msfp_surveyid` from surveys dataset |
+| `personId` | Person ID Response | SingleLine.Text | ✅ | References `id` from organization dataset |
+| `responseUrl` | Response URL | SingleLine.Text | ❌ | URL to view detailed response |
+| `responseDate` | Response Date | DateAndTime.DateAndTime | ❌ | When the survey was completed |
 
 #### Data Structure Example
 ```json
@@ -134,14 +106,9 @@ graph TB
 
 ### Input Properties
 
-```mermaid
-graph LR
-    subgraph "Configuration Properties"
-        A["📁 projectId<br/>Project ID<br/>SingleLine.Text<br/>❌ Optional<br/>Customer Voice project ID for filtering"]
-    end
-    
-    style A fill:#ffffcc
-```
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `projectId` | SingleLine.Text | ❌ | Customer Voice project ID for filtering surveys |
 
 ---
 
