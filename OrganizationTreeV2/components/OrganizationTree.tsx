@@ -176,6 +176,14 @@ const useStyles = makeStyles({
   },
 });
 
+// Stałe wymiary i wyliczenia dla layoutu
+const CONTAINER_WIDTH = 1600; // 1600 + 300
+const CONTAINER_HEIGHT = 768;
+const TREE_WIDTH = Math.floor(CONTAINER_WIDTH * 0.70); // 1330px
+const LIST_WIDTH = Math.floor(CONTAINER_WIDTH * 0.15); // 285px  
+const DESC_WIDTH = CONTAINER_WIDTH - TREE_WIDTH - LIST_WIDTH; // 285px (kompensacja zaokrągleń)
+const CONTENT_HEIGHT = 768; // 768 - margines
+
 // Typy węzłów dostępne w ReactFlow
 const nodeTypes = {
   person: PersonNode,
