@@ -258,7 +258,7 @@ export interface OrganizationTreeProps {
   projectId?: string;
   userId?: string;
   onSurveyClick: (personId: string, surveyUrl: string) => void;
-  onResponseClick: (responseUrl: string) => void;
+  onResponseClick: (responseId: string) => void;
   onSurveyChange?: () => void;
 }
 
@@ -331,9 +331,9 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
   // Budowanie hierarchii i layoutu
   const handleResponseClick = React.useCallback(
-    (responseUrl: string) => {
+    (responseId: string) => {
       if (onResponseClick) {
-        onResponseClick(responseUrl);
+        onResponseClick(responseId);
       }
     },
     [onResponseClick]
