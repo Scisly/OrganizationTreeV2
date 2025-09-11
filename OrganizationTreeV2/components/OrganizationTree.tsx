@@ -55,6 +55,7 @@ const useStyles = makeStyles({
   },
   reactFlowContainer: {
     width: "100%",
+    height: "100%",
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusSmall,
   },
