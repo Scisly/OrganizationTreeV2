@@ -184,6 +184,7 @@ export class OrganizationTreeV2
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       projectId: projectId,
       userId: this.userId,
+      containerWidth: this.containerWidth,
       onSurveyClick: handleSurveyClick,
       onResponseClick: handleResponseClick,
       onSurveyChange: handleSurveyChange,

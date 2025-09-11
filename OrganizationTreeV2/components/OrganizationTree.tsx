@@ -291,6 +291,7 @@ export interface OrganizationTreeProps {
   surveysDataSet: ComponentFramework.PropertyTypes.DataSet;
   projectId?: string;
   userId?: string;
+  containerWidth?: number;
   onSurveyClick: (personId: string, surveyUrl: string) => void;
   onResponseClick: (responseId: string) => void;
   onSurveyChange?: () => void;
