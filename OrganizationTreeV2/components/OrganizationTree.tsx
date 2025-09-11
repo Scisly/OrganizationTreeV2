@@ -177,13 +177,8 @@ const useStyles = makeStyles({
   },
 });
 
-// Stałe wymiary i wyliczenia dla layoutu
-const CONTAINER_WIDTH = 1600; // 1600 + 300
-const CONTAINER_HEIGHT = 768;
-const TREE_WIDTH = Math.floor(CONTAINER_WIDTH * 0.70); // 1330px
-const LIST_WIDTH = Math.floor(CONTAINER_WIDTH * 0.15); // 285px  
-const DESC_WIDTH = CONTAINER_WIDTH - TREE_WIDTH - LIST_WIDTH; // 285px (kompensacja zaokrągleń)
-const CONTENT_HEIGHT = 768; // 768 - margines
+// Fixed height constant
+const FIXED_HEIGHT = 768;
 
 // Typy węzłów dostępne w ReactFlow
 const nodeTypes = {
@@ -307,11 +302,20 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   surveysDataSet,
   projectId,
   userId,
+  containerWidth,
   onSurveyClick,
   onResponseClick,
   onSurveyChange,
 }) => {
   const styles = useStyles();
+  
+  // Calculate responsive dimensions based on containerWidth
+  const actualContainerWidth = containerWidth ?? 1600; // fallback to default
+  const RESPONSIVE_CONTAINER_WIDTH = actualContainerWidth;
+  const RESPONSIVE_TREE_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.70);
+  const RESPONSIVE_LIST_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.15);
+  const RESPONSIVE_DESC_WIDTH = RESPONSIVE_CONTAINER_WIDTH - RESPONSIVE_TREE_WIDTH - RESPONSIVE_LIST_WIDTH;
+  
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showOnlyTeam, setShowOnlyTeam] = React.useState(true); // Domyślnie pokaż zespół
@@ -560,8 +564,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         <div 
           className={styles.container}
           style={{
-            width: `${CONTAINER_WIDTH}px`,
-            height: `${CONTAINER_HEIGHT}px`,
+            width: `${RESPONSIVE_CONTAINER_WIDTH}px`,
+            height: `768px`,
           }}
         >
           <div className={styles.emptyState}>
@@ -580,40 +584,42 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       <div 
         className={styles.container}
         style={{
-          width: `${CONTAINER_WIDTH}px`,
-          height: `${CONTAINER_HEIGHT}px`,
+          width: `${RESPONSIVE_CONTAINER_WIDTH}px`,
+          height: `768px`,
         }}
       >
         {/* Główna kolumna - drzewo organizacyjne (70%) */}
         <div 
           className={styles.mainContent}
           style={{
-            width: `${TREE_WIDTH}px`,
-            height: `${CONTENT_HEIGHT}px`,
+            width: `${RESPONSIVE_TREE_WIDTH}px`,
+            height: `768px`,
           }}
         >
           <div 
             className={styles.reactFlowContainer}
             style={{
-              width: `${TREE_WIDTH}px`,
-              height: `${CONTENT_HEIGHT}px`,
+              width: `${RESPONSIVE_TREE_WIDTH}px`,
+              height: `768px`,
             }}
           >
-            <ReactFlowProvider>
-              <ReactFlowContent
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                styles={styles}
-                userId={userId}
-                showOnlyTeam={showOnlyTeam}
-                allPeople={allPeople}
-                hierarchy={hierarchy}
-                toggleTeamFilter={toggleTeamFilter}
-                renderFilterInfo={renderFilterInfo}
-              />
-            </ReactFlowProvider>
+            <div className={styles.reactFlowWrapper}>
+              <ReactFlowProvider>
+                <ReactFlowContent
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  styles={styles}
+                  userId={userId}
+                  showOnlyTeam={showOnlyTeam}
+                  allPeople={allPeople}
+                  hierarchy={hierarchy}
+                  toggleTeamFilter={toggleTeamFilter}
+                  renderFilterInfo={renderFilterInfo}
+                />
+              </ReactFlowProvider>
+            </div>
           </div>
         </div>
         
@@ -621,8 +627,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         <div 
           className={styles.surveyPanel}
           style={{
-            width: `${LIST_WIDTH}px`,
-            height: `${CONTENT_HEIGHT}px`,
+            width: `${RESPONSIVE_LIST_WIDTH}px`,
+            height: `768px`,
           }}
         >
           <div className={styles.surveyPanelHeader}>
@@ -669,8 +675,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         <div 
           className={styles.descriptionPanel}
           style={{
-            width: `${DESC_WIDTH}px`,
-            height: `${CONTENT_HEIGHT}px`,
+            width: `${RESPONSIVE_DESC_WIDTH}px`,
+            height: `768px`,
           }}
         >
           <div className={styles.descriptionPanelHeader}>
