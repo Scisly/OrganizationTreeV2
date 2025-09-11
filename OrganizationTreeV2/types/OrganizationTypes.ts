@@ -52,10 +52,12 @@ export interface Survey {
   msfp_name: string;
   msfp_surveyurl?: string;
   msfp_projectid?: string;
+  msfp_description?: string;
 }
 
 export interface SelectedSurvey {
   id: string;
   name: string;
   url: string;
+  description?: string;
 }
