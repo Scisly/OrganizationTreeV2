@@ -19,7 +19,7 @@ export class LayoutService {
   public static createTreeLayout(
     hierarchy: OrganizationPerson[],
     onSurveyClick: (personId: string) => void,
-    onResponseClick: (responseUrl: string) => void,
+    onResponseClick: (responseId: string) => void,
     surveyResponses: SurveyResponse[],
     selectedSurvey?: SelectedSurvey,
     userId?: string,
