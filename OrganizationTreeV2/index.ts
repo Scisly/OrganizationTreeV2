@@ -7,8 +7,7 @@ export class OrganizationTreeV2
   private notifyOutputChanged: () => void;
   private context: ComponentFramework.Context<IInputs>;
   private userId: string;
-  private containerWidth: number;
-  private containerHeight: number;  
+  private containerWidth: number;  
 
   /**
    * Empty constructor.
@@ -33,8 +32,7 @@ export class OrganizationTreeV2
     context.parameters.organizationDataSet.paging.setPageSize(1500);
     context.parameters.surveyResponsesDataSet.paging.setPageSize(1500);
     context.parameters.surveysDataSet.paging.setPageSize(1500);
-    this.containerWidth = context.mode.allocatedWidth;
-    this.containerHeight = context.mode.allocatedHeight;
+    this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
     this.context = context;
     this.userId = context.userSettings.userId;
   }
@@ -48,6 +46,7 @@ export class OrganizationTreeV2
     context: ComponentFramework.Context<IInputs>
   ): React.ReactElement {
     this.context = context;
+    this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
 
     // Podstawowe informacje o datasecie dla debugowania
     const recordCount =
