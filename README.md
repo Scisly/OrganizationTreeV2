@@ -1,6 +1,6 @@
 # OrganizationTreeV2 - PCF Control with Survey Integration
 
-Advanced PCF control displaying interactive organizational hierarchy with integrated Customer Voice survey system and modal response viewing.
+Advanced PCF control displaying interactive organizational hierarchy with integrated Customer Voice survey system, modal response viewing, and comprehensive survey descriptions.
 
 ## Key Features
 
@@ -9,11 +9,13 @@ Advanced PCF control displaying interactive organizational hierarchy with integr
 - **Smart Filtering**: "All" vs "My Team Only" views with automatic manager detection
 - **Employee Cards**: Display name, position, email with visual survey indicators
 
-### 📊 **Survey Integration**
+### 📊 **Enhanced Survey Integration**
 - **Customer Voice Integration**: Direct Microsoft Customer Voice (Forms Pro) integration
-- **Dynamic Survey Selection**: Real-time switching between multiple surveys
+- **Three-Column Layout**: Organization Tree (70%) | Survey List (15%) | Survey Description (15%)
+- **Dynamic Survey Selection**: Real-time switching between multiple surveys with detailed descriptions
 - **Project Filtering**: Filter surveys by Customer Voice project ID
 - **Modal Response Viewing**: View survey responses in modal dialogs using `Xrm.Navigation.navigateTo`
+- **Enhanced Survey Display**: Bold selection indicators with checkmark icons for active surveys
 
 ### 🎯 **Visual Status System**
 - **🟢 Green Glow**: Employee responded to selected survey
@@ -30,9 +32,15 @@ Advanced PCF control displaying interactive organizational hierarchy with integr
 ## Architecture
 
 ### Components
-- **OrganizationTree**: Main hierarchy management with ReactFlow integration
+- **OrganizationTree**: Main hierarchy management with ReactFlow integration and three-column layout
 - **PersonNode**: Individual employee cards with survey actions
-- **Survey Panel**: Dynamic survey selection interface (20% sidebar)
+- **Survey Panel**: Dynamic survey selection interface with enhanced UI (15% width)
+- **Description Panel**: Dedicated survey description display area (15% width)
+
+### Layout System
+- **Fixed Dimensions**: 1900px total width, 768px height for optimal performance
+- **Column Distribution**: Tree (70% - 1330px) | Survey List (15% - 285px) | Description (15% - 285px)
+- **Responsive Design**: Optimized for standard business monitor resolutions
 
 ### Services
 - **OrganizationService**: Hierarchy building and team detection
@@ -63,6 +71,7 @@ msfp_surveyid → Survey GUID
 msfp_name → Survey display name  
 msfp_surveyurl → Survey URL
 msfp_projectid → Project ID filter
+msfp_description → Survey description text (NEW)
 ```
 
 ### 2. Organization Dataset
@@ -128,7 +137,19 @@ LEFT JOIN employees e ON su.internalemailaddress = e.emailaddress
 WHERE sr.statecode = 0
 ```
 
-## Key Improvements in v4.0
+## Key Improvements in v5.0
+
+### ✅ **Three-Column Enhanced Layout**
+- **Survey Description Panel**: Dedicated 15% column for displaying detailed survey descriptions
+- **Optimized Proportions**: Tree (70%) | Survey List (15%) | Description (15%) for maximum usability
+- **Fixed Dimensions**: 1900px total width with pixel-perfect layout calculations
+- **Enhanced Survey UI**: Bold text and checkmark icons for selected surveys
+
+### ✅ **Survey Description Integration**
+- **New Data Field**: Added `msfp_description` field support in ControlManifest
+- **Dynamic Display**: Real-time description updates when switching between surveys
+- **TypeScript Integration**: Enhanced type definitions for Survey and SelectedSurvey interfaces
+- **Responsive Content**: Proper text wrapping and scrolling for long descriptions
 
 ### ✅ **Modal Dialog System**
 - **Enhanced Navigation**: Uses `Xrm.Navigation.navigateTo` for proper modal dialogs
@@ -172,8 +193,14 @@ WHERE sr.statecode = 0
 ### Survey Integration Issues
 - **No Surveys**: Verify Customer Voice integration and project filtering
 - **Response Tracking**: Check survey ID matching between datasets
+- **Missing Descriptions**: Ensure `msfp_description` field is properly mapped in dataset configuration
+
+### Layout Issues
+- **Column Sizing**: Fixed 1900px total width optimized for business monitors
+- **Description Panel**: Verify survey description data is available and properly formatted
+- **UI Elements**: Check Fluent UI icon dependencies for checkmark display
 
 ---
 
-**Latest Version: v4.0** - Modal Dialog Enhancement  
-*Built with Power Platform PCF, ReactFlow, Fluent UI, and enhanced navigation capabilities*
+**Latest Version: v5.0** - Three-Column Layout with Survey Descriptions  
+*Built with Power Platform PCF, ReactFlow, Fluent UI, and enhanced three-column architecture*
