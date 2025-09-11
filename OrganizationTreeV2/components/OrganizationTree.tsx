@@ -36,12 +36,10 @@ import {
   Survey,
   SelectedSurvey,
 } from "../types/OrganizationTypes";
-import { Filter20Regular, Organization20Regular, Poll20Regular } from "@fluentui/react-icons";
+import { CommentText16Filled, Document20Regular, Filter20Regular, Organization20Regular, Poll20Regular, TextDescription20Regular, Checkmark16Filled, Checkmark16Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
   container: {
-    width: "1600px", // Stałe wymiary - szerokość
-    height: "768px", // Stałe wymiary - wysokość
     display: "flex",
     flexDirection: "row",
     overflow: "hidden",
@@ -50,7 +48,6 @@ const useStyles = makeStyles({
     borderRadius: tokens.borderRadiusMedium,
   },
   mainContent: {
-    flex: "1 1 80%",
     display: "flex",
     flexDirection: "column",
     minWidth: "0", // Prevents flex item from overflowing
@@ -58,13 +55,20 @@ const useStyles = makeStyles({
   },
   reactFlowContainer: {
     width: "100%",
-    height: "720px", // Explicit height dla ReactFlow (768px - margines)
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusSmall,
   },
   surveyPanel: {
-    flex: "0 0 20%",
-    minWidth: "240px",
+    minWidth: "200px",
+    height: "100%",
+    overflow: "auto",
+    ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  descriptionPanel: {
+    minWidth: "200px",
     height: "100%",
     overflow: "auto",
     ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
@@ -80,6 +84,14 @@ const useStyles = makeStyles({
     alignItems: "center",
     ...shorthands.gap("8px"),
   },
+  descriptionPanelHeader: {
+    ...shorthands.padding("12px"),
+    ...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke2),
+    backgroundColor: tokens.colorNeutralBackground1,
+    display: "flex",
+    alignItems: "center",
+    ...shorthands.gap("8px"),
+  },
   surveyList: {
     flex: "1 1 auto",
     ...shorthands.padding("8px"),
@@ -87,6 +99,13 @@ const useStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
     ...shorthands.gap("4px"),
+  },
+  descriptionContent: {
+    flex: "1 1 auto",
+    ...shorthands.padding("12px"),
+    ...shorthands.overflow("auto"),
+    whiteSpace: "pre-wrap",
+    wordWrap: "break-word",
   },
   surveyItem: {
     ...shorthands.padding("8px"),
@@ -104,6 +123,17 @@ const useStyles = makeStyles({
     ":hover": {
       backgroundColor: tokens.colorBrandBackground2Hover,
     },
+  },
+  surveyCardHeader: {
+    position: "relative",
+  },
+  selectedSurveyIcon: {
+    color: tokens.colorBrandForeground1,
+  },
+  surveyHeaderWithIcon: {
+    display: "flex",
+    alignItems: "center",
+    ...shorthands.gap("8px"),
   },
   reactFlowWrapper: {
     width: "100%",
