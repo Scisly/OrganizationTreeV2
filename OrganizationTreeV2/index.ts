@@ -146,8 +146,8 @@ export class OrganizationTreeV2
             entityName: 'msfp_surveyresponse',
             entityId: responseId,
             openInNewWindow: false,
-            height: 600,
-            width: 1200
+            height: 768,
+            width: 1600
           };
           
           console.log("Fallback: Calling PCF openForm with formOptions:", formOptions);
