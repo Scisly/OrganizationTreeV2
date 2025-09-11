@@ -32,6 +32,10 @@ export class OrganizationTreeV2
     context.parameters.organizationDataSet.paging.setPageSize(1500);
     context.parameters.surveyResponsesDataSet.paging.setPageSize(1500);
     context.parameters.surveysDataSet.paging.setPageSize(1500);
+    
+    // Enable container resize tracking to get allocatedWidth updates
+    context.mode.trackContainerResize(true);
+    
     this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
     this.context = context;
     this.userId = context.userSettings.userId;
@@ -142,8 +146,8 @@ export class OrganizationTreeV2
             entityName: 'msfp_surveyresponse',
             entityId: responseId,
             openInNewWindow: false,
-            height: 600,
-            width: 1200
+            height: 768,
+            width: 1600
           };
           
           console.log("Fallback: Calling PCF openForm with formOptions:", formOptions);
@@ -184,6 +188,7 @@ export class OrganizationTreeV2
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       projectId: projectId,
       userId: this.userId,
+      containerWidth: this.containerWidth,
       onSurveyClick: handleSurveyClick,
       onResponseClick: handleResponseClick,
       onSurveyChange: handleSurveyChange,
