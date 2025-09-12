@@ -1,0 +1,19 @@
+{
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "typescript.preferences.enableAutoImportFileExcludePatterns": [
+        "eslint.config.js"
+    ],
+    "typescript.validate.enable": true,
+    "typescript.suggest.autoImports": true,
+    "typescript.preferences.allowDefaultProject": true,
+    "eslint.workingDirectories": ["./"],
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact"
+    ],
+    "files.associations": {
+        "eslint.config.js": "javascript"
+    }
+}
