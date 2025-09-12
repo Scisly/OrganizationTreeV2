@@ -27,17 +27,18 @@ export class OrganizationTreeV2
   public init(
     context: ComponentFramework.Context<IInputs>,
     notifyOutputChanged: () => void,
-    state: ComponentFramework.Dictionary
+    state: ComponentFramework.Dictionary,
   ): void {
     this.notifyOutputChanged = notifyOutputChanged;
     context.parameters.organizationDataSet.paging.setPageSize(1500);
     context.parameters.surveyResponsesDataSet.paging.setPageSize(1500);
     context.parameters.surveysDataSet.paging.setPageSize(1500);
-    
+
     // Enable container resize tracking to get allocatedWidth updates
     context.mode.trackContainerResize(true);
-    
-    this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
+
+    this.containerWidth =
+      parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
     this.context = context;
     this.userId = context.userSettings.userId;
   }
