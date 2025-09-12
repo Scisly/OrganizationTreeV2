@@ -5,11 +5,14 @@ import {
   OrganizationEdge,
   SurveyResponse,
   SelectedSurvey,
-} from "../../types/OrganizationTypes";
-import { LAYOUT_CONSTANTS } from "../utils/constants";
-import { OrganizationService } from "../data/OrganizationService";
+} from "../types/OrganizationTypes";
 
 export class LayoutService {
+  private static readonly NODE_WIDTH = 220;
+  private static readonly NODE_HEIGHT = 140;
+  private static readonly RANK_SEPARATION = 80;
+  private static readonly NODE_SEPARATION = 60;
+
   /**
    * Tworzy layout drzewa organizacyjnego używając Dagre
    */
@@ -21,7 +24,7 @@ export class LayoutService {
     selectedSurvey?: SelectedSurvey,
     userId?: string,
     fullHierarchy?: OrganizationPerson[],
-    allPeople?: OrganizationPerson[],
+    allPeople?: OrganizationPerson[]
   ): { nodes: OrganizationNode[]; edges: OrganizationEdge[] } {
     const dagreGraph = new dagre.graphlib.Graph();
 
@@ -29,24 +32,24 @@ export class LayoutService {
     dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({
       rankdir: "TB", // Top to Bottom
-      ranksep: LAYOUT_CONSTANTS.RANK_SEPARATION,
-      nodesep: LAYOUT_CONSTANTS.NODE_SEPARATION,
-      edgesep: LAYOUT_CONSTANTS.EDGE_SEPARATION,
-      marginx: LAYOUT_CONSTANTS.MARGIN_X,
-      marginy: LAYOUT_CONSTANTS.MARGIN_Y,
+      ranksep: this.RANK_SEPARATION,
+      nodesep: this.NODE_SEPARATION,
+      edgesep: 10,
+      marginx: 20,
+      marginy: 20,
     });
 
     const nodes: OrganizationNode[] = [];
     const edges: OrganizationEdge[] = [];
 
-    // Płaska lista wszystkich osób z hierarchii - używaj OrganizationService.flattenHierarchy
-    const hierarchyPeople = OrganizationService.flattenHierarchy(hierarchy);
+    // Płaska lista wszystkich osób z hierarchii
+    const hierarchyPeople = this.flattenHierarchy(hierarchy);
 
     // Dodawanie węzłów do grafu Dagre
     hierarchyPeople.forEach((person) => {
       dagreGraph.setNode(person.id, {
-        width: LAYOUT_CONSTANTS.NODE_WIDTH,
-        height: LAYOUT_CONSTANTS.NODE_HEIGHT,
+        width: this.NODE_WIDTH,
+        height: this.NODE_HEIGHT,
       });
     });
 
@@ -75,15 +78,15 @@ export class LayoutService {
 
       // Znajdź odpowiedź dla tej osoby
       const surveyResponse = surveyResponses.find(
-        (response) => response.personId === person.id,
+        (response) => response.personId === person.id
       );
 
       nodes.push({
         id: person.id,
         type: "person",
         position: {
-          x: nodeWithPosition.x - LAYOUT_CONSTANTS.NODE_WIDTH / 2,
-          y: nodeWithPosition.y - LAYOUT_CONSTANTS.NODE_HEIGHT / 2,
+          x: nodeWithPosition.x - this.NODE_WIDTH / 2,
+          y: nodeWithPosition.y - this.NODE_HEIGHT / 2,
         },
         data: {
           person,
@@ -102,25 +105,42 @@ export class LayoutService {
   }
 
   /**
+   * Konwertuje hierarchię do płaskiej listy
+   */
+  private static flattenHierarchy(
+    hierarchy: OrganizationPerson[]
+  ): OrganizationPerson[] {
+    const result: OrganizationPerson[] = [];
+
+    const flatten = (people: OrganizationPerson[]) => {
+      people.forEach((person) => {
+        result.push(person);
+        if (person.children && person.children.length > 0) {
+          flatten(person.children);
+        }
+      });
+    };
+
+    flatten(hierarchy);
+    return result;
+  }
+
+  /**
    * Automatyczne centrowanie widoku
    */
-  public static getCenterPosition(nodes: OrganizationNode[]): {
-    x: number;
-    y: number;
-  } {
+  public static getCenterPosition(
+    nodes: OrganizationNode[]
+  ): { x: number; y: number } {
     if (nodes.length === 0) return { x: 0, y: 0 };
 
     const bounds = nodes.reduce(
       (acc, node) => ({
         minX: Math.min(acc.minX, node.position.x),
         minY: Math.min(acc.minY, node.position.y),
-        maxX: Math.max(acc.maxX, node.position.x + LAYOUT_CONSTANTS.NODE_WIDTH),
-        maxY: Math.max(
-          acc.maxY,
-          node.position.y + LAYOUT_CONSTANTS.NODE_HEIGHT,
-        ),
+        maxX: Math.max(acc.maxX, node.position.x + this.NODE_WIDTH),
+        maxY: Math.max(acc.maxY, node.position.y + this.NODE_HEIGHT),
       }),
-      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
     );
 
     return {

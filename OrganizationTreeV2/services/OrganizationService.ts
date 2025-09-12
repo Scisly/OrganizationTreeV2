@@ -2,12 +2,7 @@ import {
   OrganizationPerson,
   HierarchyFilterOptions,
   SurveyResponse,
-} from "../../types/OrganizationTypes";
-import {
-  normalizeGuid,
-  compareGuids,
-  safeGetRecordValue,
-} from "./OrganizationService.internal";
+} from "../types/OrganizationTypes";
 import DataSetInterfaces = ComponentFramework.PropertyHelper.DataSetApi;
 
 export class OrganizationService {
@@ -17,14 +12,14 @@ export class OrganizationService {
    */
   public static buildHierarchyWithPeople(
     dataSet: ComponentFramework.PropertyTypes.DataSet,
-    filterOptions?: HierarchyFilterOptions,
+    filterOptions?: HierarchyFilterOptions
   ): { hierarchy: OrganizationPerson[]; allPeople: OrganizationPerson[] } {
     const people: OrganizationPerson[] = [];
 
     // Sprawdź czy istnieją dodatkowe strony danych
     if (dataSet.paging?.hasNextPage) {
       console.warn(
-        "UWAGA: Dataset ma więcej stron danych. Tylko pierwsza strona jest załadowana.",
+        "UWAGA: Dataset ma więcej stron danych. Tylko pierwsza strona jest załadowana."
       );
     }
 
@@ -35,14 +30,12 @@ export class OrganizationService {
 
         // Debug: sprawdź wartości pól
         const person: OrganizationPerson = {
-          id: safeGetRecordValue(record, "id", "") as string,
-          name: safeGetRecordValue(record, "name", "") as string,
-          position: safeGetRecordValue<string>(record, "position") ?? undefined,
-          managerId:
-            safeGetRecordValue<string>(record, "managerId") ?? undefined,
-          email: safeGetRecordValue<string>(record, "email") ?? undefined,
-          ag_userid:
-            safeGetRecordValue<string>(record, "ag_userid") ?? undefined,
+          id: record.getValue("id") as string,
+          name: record.getValue("name") as string,
+          position: (record.getValue("position") as string) || undefined,
+          managerId: (record.getValue("managerId") as string) || undefined,
+          email: (record.getValue("email") as string) || undefined,
+          ag_userid: (record.getValue("ag_userid") as string) || undefined,
           children: [],
         };
 
@@ -61,7 +54,7 @@ export class OrganizationService {
         const filteredHierarchy = this.filterByUserId(
           people,
           hierarchy,
-          filterOptions.currentUserId,
+          filterOptions.currentUserId
         );
         return { hierarchy: filteredHierarchy, allPeople: people };
       }
@@ -75,7 +68,7 @@ export class OrganizationService {
    */
   public static buildHierarchy(
     dataSet: ComponentFramework.PropertyTypes.DataSet,
-    filterOptions?: HierarchyFilterOptions,
+    filterOptions?: HierarchyFilterOptions
   ): OrganizationPerson[] {
     return this.buildHierarchyWithPeople(dataSet, filterOptions).hierarchy;
   }
@@ -84,7 +77,7 @@ export class OrganizationService {
    * Buduje strukturę drzewiastą z płaskiej listy osób
    */
   private static buildTreeStructure(
-    people: OrganizationPerson[],
+    people: OrganizationPerson[]
   ): OrganizationPerson[] {
     const personMap = new Map<string, OrganizationPerson>();
     const rootPeople: OrganizationPerson[] = [];
@@ -131,26 +124,30 @@ export class OrganizationService {
   private static filterByUserId(
     allPeople: OrganizationPerson[],
     hierarchy: OrganizationPerson[],
-    userId: string,
+    userId: string
   ): OrganizationPerson[] {
     // Najpierw spróbuj znaleźć użytkownika po ag_userid
     let currentUser = allPeople.find((person) => person.ag_userid === userId);
 
     // Jeśli nie znaleziono po ag_userid, spróbuj porównać bez formatowania GUID
-    currentUser ??= allPeople.find((person) => {
-      if (!person.ag_userid || !userId) return false;
+    if (!currentUser) {
       // Usuń klamry i myślniki z userId jeśli to GUID
-      const cleanUserId = normalizeGuid(userId);
-      const cleanAgUserId = normalizeGuid(person.ag_userid);
-      return cleanAgUserId === cleanUserId;
-    });
+      const cleanUserId = userId.replace(/[{}-]/g, "").toLowerCase();
+      currentUser = allPeople.find((person) => {
+        if (!person.ag_userid) return false;
+        const cleanAgUserId = person.ag_userid
+          .replace(/[{}-]/g, "")
+          .toLowerCase();
+        return cleanAgUserId === cleanUserId;
+      });
+    }
 
     // Jeśli dalej nie znaleziono, sprawdź czy userId odpowiada id w datasecie
     currentUser ??= allPeople.find((person) => person.id === userId);
 
     if (!currentUser) {
       console.warn(
-        `OrganizationService: Nie znaleziono użytkownika o ID: ${userId}`,
+        `OrganizationService: Nie znaleziono użytkownika o ID: ${userId}`
       );
       return []; // Nie znaleziono użytkownika
     }
@@ -166,11 +163,54 @@ export class OrganizationService {
   }
 
   /**
+   * Filtruje hierarchię - pokazuje użytkownika i jego zespół (podwładnych)
+   */
+  private static filterByTeam(
+    hierarchy: OrganizationPerson[],
+    currentUserId: string
+  ): OrganizationPerson[] {
+    // Znajdź aktualnego użytkownika w hierarchii
+    const currentUser = this.findPersonById(hierarchy, currentUserId);
+
+    if (currentUser) {
+      // Utwórz kopię użytkownika z jego zespołem
+      const userWithTeam: OrganizationPerson = {
+        ...currentUser,
+        children: currentUser.children ? [...currentUser.children] : [],
+      };
+
+      // Zwróć użytkownika z jego zespołem jako root
+      return [userWithTeam];
+    }
+
+    // Jeśli nie znaleziono użytkownika, zwróć pustą hierarchię
+    return [];
+  }
+
+  /**
+   * Filtruje hierarchię - pokazuje tylko zespół danego managera (DEPRECATED - użyj filterByTeam)
+   */
+  private static filterByManager(
+    hierarchy: OrganizationPerson[],
+    managerId: string
+  ): OrganizationPerson[] {
+    // Znajdź managera w hierarchii
+    const manager = this.findPersonById(hierarchy, managerId);
+
+    if (manager) {
+      // Zwróć tylko jego dział (bez osób wyżej w hierarchii)
+      return [manager];
+    }
+
+    return hierarchy;
+  }
+
+  /**
    * Znajdź osobę po ag_userid w płaskiej liście (z obsługą różnych formatów GUID)
    */
   private static findPersonByUserId(
     people: OrganizationPerson[],
-    userId: string,
+    userId: string
   ): OrganizationPerson | null {
     // Najpierw spróbuj dokładnego dopasowania
     let found = people.find((person) => person.ag_userid === userId);
@@ -197,7 +237,7 @@ export class OrganizationService {
    */
   private static findPersonById(
     people: OrganizationPerson[],
-    id: string,
+    id: string
   ): OrganizationPerson | null {
     for (const person of people) {
       if (person.id === id) {
@@ -221,7 +261,7 @@ export class OrganizationService {
     hierarchy: OrganizationPerson[],
     personId: string,
     currentUserId?: string,
-    allPeople?: OrganizationPerson[],
+    allPeople?: OrganizationPerson[]
   ): boolean {
     if (!currentUserId || !allPeople) {
       return false;
@@ -247,8 +287,12 @@ export class OrganizationService {
         isCurrentUser = true;
       } else {
         // Porównanie z normalizacją GUID (usuń klamry i myślniki)
-        const normalizedPersonId = normalizeGuid(person.ag_userid);
-        const normalizedCurrentId = normalizeGuid(currentUserId);
+        const normalizedPersonId = person.ag_userid
+          .replace(/[{}-]/g, "")
+          .toLowerCase();
+        const normalizedCurrentId = currentUserId
+          .replace(/[{}-]/g, "")
+          .toLowerCase();
         isCurrentUser = normalizedPersonId === normalizedCurrentId;
       }
     }
@@ -257,17 +301,71 @@ export class OrganizationService {
     const isTeamMember = this.isPersonSubordinateOf(
       allPeople,
       person.id,
-      currentUser.id,
+      currentUser.id
     );
 
     return isCurrentUser || isTeamMember;
   }
 
   /**
+   * Sprawdza czy manager jest managerem danej osoby (bezpośrednio lub pośrednio)
+   */
+  private static isPersonManagerOf(
+    allPeople: OrganizationPerson[],
+    managerId: string,
+    personId: string
+  ): boolean {
+    const person = allPeople.find((p) => p.id === personId);
+    if (!person) return false;
+
+    let currentManagerId = person.managerId;
+    const visited = new Set<string>(); // Zabezpieczenie przed cyklami
+
+    while (currentManagerId && !visited.has(currentManagerId)) {
+      visited.add(currentManagerId);
+
+      if (currentManagerId === managerId) {
+        return true; // Znaleziono managera w hierarchii
+      }
+
+      // Idź poziom wyżej
+      const manager = allPeople.find((p) => p.id === currentManagerId);
+      currentManagerId = manager?.managerId;
+    }
+
+    return false;
+  }
+
+  /**
+   * Rekurencyjnie sprawdza czy dana osoba jest w zespole (podwładnych) managera
+   */
+  private static isPersonInTeam(
+    manager: OrganizationPerson,
+    personId: string
+  ): boolean {
+    if (!manager.children || manager.children.length === 0) {
+      return false;
+    }
+
+    for (const child of manager.children) {
+      if (child.id === personId) {
+        return true; // Znaleziono osobę jako bezpośredniego podwładnego
+      }
+
+      // Rekurencyjnie sprawdź w zespole podwładnego
+      if (this.isPersonInTeam(child, personId)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Płaska lista wszystkich osób z hierarchii
    */
   public static flattenHierarchy(
-    hierarchy: OrganizationPerson[],
+    hierarchy: OrganizationPerson[]
   ): OrganizationPerson[] {
     const result: OrganizationPerson[] = [];
 
@@ -290,11 +388,11 @@ export class OrganizationService {
   private static buildSubordinatesHierarchy(
     allPeople: OrganizationPerson[],
     managerId: string,
-    level = 0,
+    level = 0
   ): OrganizationPerson[] {
     // Znajdź bezpośrednich podwładnych tego managera
     const directSubordinates = allPeople.filter(
-      (person) => person.managerId === managerId,
+      (person) => person.managerId === managerId
     );
 
     // Dla każdego podwładnego, rekursywnie zbuduj jego hierarchię
@@ -303,9 +401,24 @@ export class OrganizationService {
       children: this.buildSubordinatesHierarchy(
         allPeople,
         subordinate.id,
-        level + 1,
+        level + 1
       ),
     }));
+  }
+
+  /**
+   * Liczy wszystkich ludzi w hierarchii (włącznie z rootem)
+   */
+  private static countAllSubordinates(person: OrganizationPerson): number {
+    let count = 1; // Liczmy siebie
+
+    if (person.children && person.children.length > 0) {
+      count += person.children.reduce((total, child) => {
+        return total + this.countAllSubordinates(child);
+      }, 0);
+    }
+
+    return count;
   }
 
   /**
@@ -314,7 +427,7 @@ export class OrganizationService {
   private static isPersonSubordinateOf(
     allPeople: OrganizationPerson[],
     personId: string,
-    managerId: string,
+    managerId: string
   ): boolean {
     const person = allPeople.find((p) => p.id === personId);
     if (!person?.managerId) {
@@ -335,7 +448,7 @@ export class OrganizationService {
    */
   public static processSurveyResponses(
     dataSet: ComponentFramework.PropertyTypes.DataSet,
-    surveyId: string,
+    surveyId: string
   ): SurveyResponse[] {
     const responses: SurveyResponse[] = [];
 
@@ -347,13 +460,11 @@ export class OrganizationService {
       const record = dataSet.records[recordId];
 
       const responseRecord: SurveyResponse = {
-        responseId: safeGetRecordValue(record, "responseId", "") as string,
-        surveyId: safeGetRecordValue(record, "survey_id", "") as string,
-        personId: safeGetRecordValue(record, "personId", "") as string,
-        responseUrl:
-          safeGetRecordValue<string>(record, "responseUrl") ?? undefined,
-        responseDate:
-          safeGetRecordValue<Date>(record, "responseDate") ?? undefined,
+        responseId: record.getValue("responseId") as string,
+        surveyId: record.getValue("survey_id") as string,
+        personId: record.getValue("personId") as string,
+        responseUrl: (record.getValue("responseUrl") as string) || undefined,
+        responseDate: (record.getValue("responseDate") as Date) || undefined,
       };
 
       // Filtruj tylko odpowiedzi dla obecnej ankiety
@@ -370,7 +481,7 @@ export class OrganizationService {
    */
   public static findResponseForPerson(
     responses: SurveyResponse[],
-    personId: string,
+    personId: string
   ): SurveyResponse | undefined {
     return responses.find((response) => response.personId === personId);
   }

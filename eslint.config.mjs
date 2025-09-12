@@ -1,13 +1,12 @@
-// @ts-nocheck
-const eslintjs = require("@eslint/js");
-const microsoftPowerApps = require("@microsoft/eslint-plugin-power-apps");
-const pluginPromise = require("eslint-plugin-promise");
-const reactPlugin = require("eslint-plugin-react");
-const globals = require("globals");
-const typescriptEslint = require("typescript-eslint");
+import eslintjs from "@eslint/js";
+import microsoftPowerApps from "@microsoft/eslint-plugin-power-apps";
+import pluginPromise from "eslint-plugin-promise";
+import reactPlugin from "eslint-plugin-react";
+import globals from "globals";
+import typescriptEslint from "typescript-eslint";
 
 /** @type {import('eslint').Linter.Config[]} */
-module.exports = [
+export default [
   {
     ignores: ["**/generated"],
   },
@@ -31,7 +30,7 @@ module.exports = [
         ecmaVersion: 2020,
         sourceType: "module",
         projectService: true,
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
 

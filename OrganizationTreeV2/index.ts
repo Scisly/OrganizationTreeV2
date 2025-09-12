@@ -1,14 +1,13 @@
 ﻿import { IInputs, IOutputs } from "./generated/ManifestTypes";
-import { OrganizationTree } from "./components/core/OrganizationTree";
+import { OrganizationTree } from "./components/OrganizationTree";
 import * as React from "react";
 
 export class OrganizationTreeV2
-  implements ComponentFramework.ReactControl<IInputs, IOutputs>
-{
+  implements ComponentFramework.ReactControl<IInputs, IOutputs> {
   private notifyOutputChanged: () => void;
   private context: ComponentFramework.Context<IInputs>;
   private userId: string;
-  private containerWidth: number;
+  private containerWidth: number;  
 
   /**
    * Empty constructor.
@@ -27,18 +26,17 @@ export class OrganizationTreeV2
   public init(
     context: ComponentFramework.Context<IInputs>,
     notifyOutputChanged: () => void,
-    state: ComponentFramework.Dictionary,
+    state: ComponentFramework.Dictionary
   ): void {
     this.notifyOutputChanged = notifyOutputChanged;
     context.parameters.organizationDataSet.paging.setPageSize(1500);
     context.parameters.surveyResponsesDataSet.paging.setPageSize(1500);
     context.parameters.surveysDataSet.paging.setPageSize(1500);
-
+    
     // Enable container resize tracking to get allocatedWidth updates
     context.mode.trackContainerResize(true);
-
-    this.containerWidth =
-      parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
+    
+    this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
     this.context = context;
     this.userId = context.userSettings.userId;
   }
@@ -49,11 +47,10 @@ export class OrganizationTreeV2
    * @returns ReactElement root react element for the control
    */
   public updateView(
-    context: ComponentFramework.Context<IInputs>,
+    context: ComponentFramework.Context<IInputs>
   ): React.ReactElement {
     this.context = context;
-    this.containerWidth =
-      parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
+    this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
 
     // Podstawowe informacje o datasecie dla debugowania
     const recordCount =
@@ -86,61 +83,50 @@ export class OrganizationTreeV2
 
     // Callback dla wyÅ›wietlenia odpowiedzi - XRM.NAVIGATION.NAVIGATETO MODAL DIALOG IMPLEMENTATION
     const handleResponseClick = (responseId: string) => {
-      console.log(
-        "Opening survey response modal using Xrm.Navigation.navigateTo:",
-        responseId,
-      );
-
+      console.log("Opening survey response modal using Xrm.Navigation.navigateTo:", responseId);
+      
       if (responseId) {
         try {
           // Check if global Xrm object is available (Client API)
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           const xrmNav = (window as any).Xrm?.Navigation;
-
+          
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (xrmNav?.navigateTo) {
             console.log("Using Xrm.Navigation.navigateTo for modal dialog");
-
+            
             // Use Xrm.Navigation.navigateTo to open existing record in dialog
             const pageInput = {
               pageType: "entityrecord",
               entityName: "msfp_surveyresponse",
-              entityId: responseId,
+              entityId: responseId
             };
-
+            
             const navigationOptions = {
               target: 2, // Open in dialog
               height: { value: 80, unit: "%" },
               width: { value: 70, unit: "%" },
-              position: 1, // Center
+              position: 1 // Center
             };
-
-            console.log("Calling Xrm.Navigation.navigateTo with:", {
-              pageInput,
-              navigationOptions,
-            });
-
+            
+            console.log("Calling Xrm.Navigation.navigateTo with:", { pageInput, navigationOptions });
+            
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             void xrmNav.navigateTo(pageInput, navigationOptions).then(
               (success: unknown) => {
-                console.log(
-                  "Modal dialog opened successfully with navigateTo:",
-                  success,
-                );
+                console.log("Modal dialog opened successfully with navigateTo:", success);
                 return success;
               },
               (error: unknown) => {
                 console.error("Error opening dialog with navigateTo:", error);
-
+                
                 // Fallback to PCF openForm
                 console.log("Falling back to PCF openForm");
                 fallbackToOpenForm(responseId, context);
-              },
+              }
             );
           } else {
-            console.warn(
-              "Xrm.Navigation.navigateTo not available, using PCF openForm",
-            );
+            console.warn("Xrm.Navigation.navigateTo not available, using PCF openForm");
             fallbackToOpenForm(responseId, context);
           }
         } catch (error) {
@@ -153,52 +139,40 @@ export class OrganizationTreeV2
     };
 
     // Helper method for fallback to PCF openForm
-    const fallbackToOpenForm = (
-      responseId: string,
-      context: ComponentFramework.Context<IInputs>,
-    ) => {
+    const fallbackToOpenForm = (responseId: string, context: ComponentFramework.Context<IInputs>) => {
       if (responseId && context.navigation) {
         try {
-          const formOptions: ComponentFramework.NavigationApi.EntityFormOptions =
-            {
-              entityName: "msfp_surveyresponse",
-              entityId: responseId,
-              openInNewWindow: false,
-              height: 768,
-              width: 1600,
-            };
-
-          console.log(
-            "Fallback: Calling PCF openForm with formOptions:",
-            formOptions,
-          );
-
-          context.navigation
-            .openForm(formOptions)
-            .then((success) => {
+          const formOptions: ComponentFramework.NavigationApi.EntityFormOptions = {
+            entityName: 'msfp_surveyresponse',
+            entityId: responseId,
+            openInNewWindow: false,
+            height: 768,
+            width: 1600
+          };
+          
+          console.log("Fallback: Calling PCF openForm with formOptions:", formOptions);
+          
+          context.navigation.openForm(formOptions).then(
+            (success) => {
               console.log("Fallback: PCF openForm successful:", success);
               return success;
-            })
-            .catch((error) => {
+            }
+          ).catch(
+            (error) => {
               console.error("Fallback: PCF openForm failed:", error);
-
+              
               // Final fallback to window.open
               const fallbackUrl = `/main.aspx?etn=msfp_surveyresponse&id=${responseId}&newWindow=true&pagetype=entityrecord`;
-              console.log(
-                "Final fallback: Using window.open with URL:",
-                fallbackUrl,
-              );
+              console.log("Final fallback: Using window.open with URL:", fallbackUrl);
               window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-            });
+            }
+          );
         } catch (error) {
           console.error("Fallback: Error with PCF openForm:", error);
-
+          
           // Final fallback to window.open
           const fallbackUrl = `/main.aspx?etn=msfp_surveyresponse&id=${responseId}&newWindow=true&pagetype=entityrecord`;
-          console.log(
-            "Final fallback: Using window.open with URL:",
-            fallbackUrl,
-          );
+          console.log("Final fallback: Using window.open with URL:", fallbackUrl);
           window.open(fallbackUrl, "_blank", "noopener,noreferrer");
         }
       }
@@ -218,6 +192,7 @@ export class OrganizationTreeV2
       onSurveyClick: handleSurveyClick,
       onResponseClick: handleResponseClick,
       onSurveyChange: handleSurveyChange,
+      
     });
   }
 
@@ -237,5 +212,3 @@ export class OrganizationTreeV2
     // Add code to cleanup control if necessary
   }
 }
-
-export default OrganizationTreeV2;
