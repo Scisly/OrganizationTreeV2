@@ -1,13 +1,14 @@
 ﻿import { IInputs, IOutputs } from "./generated/ManifestTypes";
-import { OrganizationTree } from "./components/OrganizationTree";
+import { OrganizationTree } from "./components/core/OrganizationTree";
 import * as React from "react";
 
 export class OrganizationTreeV2
-  implements ComponentFramework.ReactControl<IInputs, IOutputs> {
+  implements ComponentFramework.ReactControl<IInputs, IOutputs>
+{
   private notifyOutputChanged: () => void;
   private context: ComponentFramework.Context<IInputs>;
   private userId: string;
-  private containerWidth: number;  
+  private containerWidth: number;
 
   /**
    * Empty constructor.
