@@ -49,10 +49,11 @@ export class OrganizationTreeV2
    * @returns ReactElement root react element for the control
    */
   public updateView(
-    context: ComponentFramework.Context<IInputs>
+    context: ComponentFramework.Context<IInputs>,
   ): React.ReactElement {
     this.context = context;
-    this.containerWidth = parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
+    this.containerWidth =
+      parseInt(context.mode.allocatedWidth.toString(), 10) || 1900;
 
     // Podstawowe informacje o datasecie dla debugowania
     const recordCount =
