@@ -312,10 +312,10 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   
   // Calculate responsive dimensions based on containerWidth
   const actualContainerWidth = containerWidth ?? 1600; // fallback to default
-  const RESPONSIVE_CONTAINER_WIDTH = actualContainerWidth - 1; // Subtract 2px for border/padding
-  const RESPONSIVE_TREE_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.70);
-  const RESPONSIVE_LIST_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.15);
-  const RESPONSIVE_DESC_WIDTH = RESPONSIVE_CONTAINER_WIDTH - RESPONSIVE_TREE_WIDTH - RESPONSIVE_LIST_WIDTH;
+  const RESPONSIVE_CONTAINER_WIDTH = actualContainerWidth - 2; // subtract 2px margin
+  const RESPONSIVE_TREE_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.70) - 2;
+  const RESPONSIVE_LIST_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.15) - 2;
+  const RESPONSIVE_DESC_WIDTH = RESPONSIVE_CONTAINER_WIDTH - RESPONSIVE_TREE_WIDTH - RESPONSIVE_LIST_WIDTH - 2;
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
