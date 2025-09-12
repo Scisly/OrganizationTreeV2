@@ -1,4 +1,5 @@
-﻿import { IInputs, IOutputs } from "./generated/ManifestTypes";
+﻿//OrganizationTreeV2/index.ts
+import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import { OrganizationTree } from "./components/core/OrganizationTree";
 import * as React from "react";
 
