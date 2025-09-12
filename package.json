@@ -10,7 +10,9 @@
     "rebuild": "pcf-scripts rebuild",
     "start": "pcf-scripts start",
     "start:watch": "pcf-scripts start watch",
-    "refreshTypes": "pcf-scripts refreshTypes"
+    "refreshTypes": "pcf-scripts refreshTypes",
+    "format": "prettier --write \"OrganizationTreeV2/**/*.{ts,tsx,js,jsx,json}\" \"*.{ts,tsx,js,jsx,json,mjs}\"",
+    "format:check": "prettier --check \"OrganizationTreeV2/**/*.{ts,tsx,js,jsx,json}\" \"*.{ts,tsx,js,jsx,json,mjs}\""
   },
   "dependencies": {
     "@codaworks/react-glow": "^1.0.6",
@@ -32,6 +34,7 @@
     "globals": "^15.15.0",
     "pcf-scripts": "^1",
     "pcf-start": "^1",
+    "prettier": "^3.6.2",
     "react": "^17.0.2",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.31.0"
