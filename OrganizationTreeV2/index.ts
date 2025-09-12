@@ -153,40 +153,52 @@ export class OrganizationTreeV2
     };
 
     // Helper method for fallback to PCF openForm
-    const fallbackToOpenForm = (responseId: string, context: ComponentFramework.Context<IInputs>) => {
+    const fallbackToOpenForm = (
+      responseId: string,
+      context: ComponentFramework.Context<IInputs>,
+    ) => {
       if (responseId && context.navigation) {
         try {
-          const formOptions: ComponentFramework.NavigationApi.EntityFormOptions = {
-            entityName: 'msfp_surveyresponse',
-            entityId: responseId,
-            openInNewWindow: false,
-            height: 768,
-            width: 1600
-          };
-          
-          console.log("Fallback: Calling PCF openForm with formOptions:", formOptions);
-          
-          context.navigation.openForm(formOptions).then(
-            (success) => {
+          const formOptions: ComponentFramework.NavigationApi.EntityFormOptions =
+            {
+              entityName: "msfp_surveyresponse",
+              entityId: responseId,
+              openInNewWindow: false,
+              height: 768,
+              width: 1600,
+            };
+
+          console.log(
+            "Fallback: Calling PCF openForm with formOptions:",
+            formOptions,
+          );
+
+          context.navigation
+            .openForm(formOptions)
+            .then((success) => {
               console.log("Fallback: PCF openForm successful:", success);
               return success;
-            }
-          ).catch(
-            (error) => {
+            })
+            .catch((error) => {
               console.error("Fallback: PCF openForm failed:", error);
-              
+
               // Final fallback to window.open
               const fallbackUrl = `/main.aspx?etn=msfp_surveyresponse&id=${responseId}&newWindow=true&pagetype=entityrecord`;
-              console.log("Final fallback: Using window.open with URL:", fallbackUrl);
+              console.log(
+                "Final fallback: Using window.open with URL:",
+                fallbackUrl,
+              );
               window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-            }
-          );
+            });
         } catch (error) {
           console.error("Fallback: Error with PCF openForm:", error);
-          
+
           // Final fallback to window.open
           const fallbackUrl = `/main.aspx?etn=msfp_surveyresponse&id=${responseId}&newWindow=true&pagetype=entityrecord`;
-          console.log("Final fallback: Using window.open with URL:", fallbackUrl);
+          console.log(
+            "Final fallback: Using window.open with URL:",
+            fallbackUrl,
+          );
           window.open(fallbackUrl, "_blank", "noopener,noreferrer");
         }
       }
