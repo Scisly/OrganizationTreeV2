@@ -86,50 +86,61 @@ export class OrganizationTreeV2
 
     // Callback dla wyÅ›wietlenia odpowiedzi - XRM.NAVIGATION.NAVIGATETO MODAL DIALOG IMPLEMENTATION
     const handleResponseClick = (responseId: string) => {
-      console.log("Opening survey response modal using Xrm.Navigation.navigateTo:", responseId);
-      
+      console.log(
+        "Opening survey response modal using Xrm.Navigation.navigateTo:",
+        responseId,
+      );
+
       if (responseId) {
         try {
           // Check if global Xrm object is available (Client API)
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           const xrmNav = (window as any).Xrm?.Navigation;
-          
+
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (xrmNav?.navigateTo) {
             console.log("Using Xrm.Navigation.navigateTo for modal dialog");
-            
+
             // Use Xrm.Navigation.navigateTo to open existing record in dialog
             const pageInput = {
               pageType: "entityrecord",
               entityName: "msfp_surveyresponse",
-              entityId: responseId
+              entityId: responseId,
             };
-            
+
             const navigationOptions = {
               target: 2, // Open in dialog
               height: { value: 80, unit: "%" },
               width: { value: 70, unit: "%" },
-              position: 1 // Center
+              position: 1, // Center
             };
-            
-            console.log("Calling Xrm.Navigation.navigateTo with:", { pageInput, navigationOptions });
-            
+
+            console.log("Calling Xrm.Navigation.navigateTo with:", {
+              pageInput,
+              navigationOptions,
+            });
+
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             void xrmNav.navigateTo(pageInput, navigationOptions).then(
               (success: unknown) => {
-                console.log("Modal dialog opened successfully with navigateTo:", success);
+                console.log(
+                  "Modal dialog opened successfully with navigateTo:",
+                  success,
+                );
                 return success;
               },
               (error: unknown) => {
                 console.error("Error opening dialog with navigateTo:", error);
-                
+
                 // Fallback to PCF openForm
                 console.log("Falling back to PCF openForm");
                 fallbackToOpenForm(responseId, context);
-              }
+              },
             );
           } else {
-            console.warn("Xrm.Navigation.navigateTo not available, using PCF openForm");
+            console.warn(
+              "Xrm.Navigation.navigateTo not available, using PCF openForm",
+            );
             fallbackToOpenForm(responseId, context);
           }
         } catch (error) {
