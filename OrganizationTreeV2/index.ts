@@ -237,3 +237,5 @@ export class OrganizationTreeV2
     // Add code to cleanup control if necessary
   }
 }
+
+export default OrganizationTreeV2;
