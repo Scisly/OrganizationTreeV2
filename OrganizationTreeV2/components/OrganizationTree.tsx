@@ -409,6 +409,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   const [surveys, setSurveys] = React.useState<Survey[]>([]);
   const [selectedSurvey, setSelectedSurvey] = React.useState<SelectedSurvey | null>(null);
   const [isLoadingAllData, setIsLoadingAllData] = React.useState(false);
+  const [searchText, setSearchText] = React.useState<string>("");
 
   // Funkcja do ładowania wszystkich stron danych
   const loadAllPages = React.useCallback(() => {
@@ -460,6 +461,44 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     },
     [onResponseClick]
   );
+
+  // Handler dla wyszukiwania
+  const handleSearchChange = React.useCallback((text: string) => {
+    setSearchText(text);
+  }, []);
+
+  // Funkcja filtrowania osób po imieniu i nazwisku
+  const filterPeopleByName = React.useCallback((people: OrganizationPerson[], searchTerm: string): OrganizationPerson[] => {
+    if (!searchTerm.trim()) {
+      return people;
+    }
+
+    const searchTermLower = searchTerm.toLowerCase().trim();
+    
+    const filterRecursive = (personList: OrganizationPerson[]): OrganizationPerson[] => {
+      const filtered: OrganizationPerson[] = [];
+      
+      for (const person of personList) {
+        const fullName = `${person.name}`.toLowerCase();
+        const matchesSearch = fullName.includes(searchTermLower);
+        
+        // Filtruj dzieci rekurencyjnie
+        const filteredChildren = person.children ? filterRecursive(person.children) : [];
+        
+        // Dodaj osobę jeśli ona sama pasuje do wyszukiwania lub ma dzieci które pasują
+        if (matchesSearch || filteredChildren.length > 0) {
+          filtered.push({
+            ...person,
+            children: filteredChildren,
+          });
+        }
+      }
+      
+      return filtered;
+    };
+    
+    return filterRecursive(people);
+  }, []);
 
   const buildLayout = React.useCallback(() => {
     // Najpierw zbuduj pełną hierarchię (bez filtrów) i pobierz wszystkie osoby
