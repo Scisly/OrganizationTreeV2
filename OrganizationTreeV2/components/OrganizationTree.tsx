@@ -517,13 +517,16 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     const {
       hierarchy: organizationHierarchy,
     } = OrganizationService.buildHierarchyWithPeople(dataSet, filterOptions);
-    setHierarchy(organizationHierarchy);
+    
+    // Zastosuj filtrowanie po nazwie jeśli tekst wyszukiwania nie jest pusty
+    const filteredHierarchy = filterPeopleByName(organizationHierarchy, searchText);
+    setHierarchy(filteredHierarchy);
 
     const {
       nodes: layoutNodes,
       edges: layoutEdges,
     } = LayoutService.createTreeLayout(
-      organizationHierarchy,
+      filteredHierarchy,
       handleSurveyClick,
       handleResponseClick,
       surveyResponses,
@@ -541,8 +544,10 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     userId,
     showOnlyTeam,
     surveyResponses,
+    searchText,
     handleSurveyClick,
     handleResponseClick,
+    filterPeopleByName,
     setNodes,
     setEdges,
   ]);
