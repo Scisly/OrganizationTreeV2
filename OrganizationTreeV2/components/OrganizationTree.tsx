@@ -304,11 +304,13 @@ const ReactFlowContent: React.FC<{
       panOnDrag={true}
       zoomOnScroll={true}
       zoomOnPinch={true}
+      onInit={onInit}
       fitView
       fitViewOptions={{
-        padding: 0.1,
+        padding: 0.2,
         minZoom: 0.1,
-        maxZoom: 1.5,
+        maxZoom: 1.2,
+        includeHiddenNodes: false,
       }}
       minZoom={0.1}
       maxZoom={2}
@@ -317,26 +319,38 @@ const ReactFlowContent: React.FC<{
       <Background />
 
       <Panel position="top-left" className={styles.panel}>
-        <Organization20Regular />
-        {renderFilterInfo()}
+        <div className={styles.panelRow}>
+          <Organization20Regular />
+          {renderFilterInfo()}
 
-        {userId && (
-          <Button
-            appearance="subtle"
-            size="small"
-            icon={<Filter20Regular />}
-            onClick={toggleTeamFilter}
-          >
-            {showOnlyTeam ? "Pokaż wszystkich" : "Tylko mój zespół"}
-          </Button>
-        )}
+          {userId && (
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<Filter20Regular />}
+              onClick={toggleTeamFilter}
+            >
+              {showOnlyTeam ? "Pokaż wszystkich" : "Tylko mój zespół"}
+            </Button>
+          )}
+        </div>
+        
+        <div className={styles.panelRow}>
+          <Input
+            className={styles.searchInput}
+            placeholder="Wyszukaj po imieniu i nazwisku..."
+            value={searchText}
+            style={{ width: '100%' }}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(event.target.value)}
+          />
+        </div>
       </Panel>
 
       <Panel
         position="top-left"
         className={styles.panel}
         style={{
-          top: 180,
+          top: 220,
           left: -14,
           background: "transparent",
           border: "lightgray",
