@@ -153,6 +153,12 @@ const useStyles = makeStyles({
     borderRadius: tokens.borderRadiusMedium,
     ...shorthands.padding("12px"),
     display: "flex",
+    flexDirection: "column",
+    ...shorthands.gap("8px"),
+    minWidth: "300px",
+  },
+  panelRow: {
+    display: "flex",
     alignItems: "center",
     ...shorthands.gap("8px"),
   },
@@ -175,6 +181,9 @@ const useStyles = makeStyles({
   },
   emptyStateText: {
     color: tokens.colorNeutralForeground2,
+  },
+  searchInput: {
+    width: "250px",
   },
 });
 
