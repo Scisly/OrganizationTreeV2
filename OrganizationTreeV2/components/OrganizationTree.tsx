@@ -208,6 +208,9 @@ const ReactFlowContent: React.FC<{
   hierarchy: OrganizationPerson[];
   toggleTeamFilter: () => void;
   renderFilterInfo: () => React.ReactElement;
+  onInit: (instance: ReturnType<typeof useReactFlow>) => void;
+  searchText: string;
+  handleSearchChange: (text: string) => void;
 }> = ({
   nodes,
   edges,
@@ -218,22 +221,73 @@ const ReactFlowContent: React.FC<{
   showOnlyTeam,
   toggleTeamFilter,
   renderFilterInfo,
+  onInit,
+  searchText,
+  handleSearchChange,
 }) => {
   const reactFlowInstance = useReactFlow();
 
-  // Auto fitView po załadowaniu węzłów
+  // Auto fitView po załadowaniu węzłów z lepszą logiką wyśrodkowania
   React.useEffect(() => {
     if (reactFlowInstance && nodes.length > 0) {
+      // Użyj większego opóźnienia aby upewnić się, że węzły są w pełni wyrenderowane
       const timeoutId = setTimeout(() => {
-        reactFlowInstance.fitView({
-          padding: 0.1,
-          minZoom: 0.1,
-          maxZoom: 1.5,
-        });
-      }, 100);
+        // Najpierw sprawdź czy wszystkie węzły mają prawidłowe pozycje
+        const nodesWithValidPositions = nodes.filter(
+          node => node.position.x !== undefined && node.position.y !== undefined
+        );
+        
+        if (nodesWithValidPositions.length === nodes.length) {
+          reactFlowInstance.fitView({
+            padding: 0.2, // Zwiększ padding dla lepszego wyświetlania
+            minZoom: 0.1,
+            maxZoom: 1.2, // Zmniejsz maksymalne zoom dla lepszej czytelności
+            duration: 800, // Dodaj animację
+          });
+        }
+      }, 300); // Zwiększ opóźnienie do 300ms
       return () => clearTimeout(timeoutId);
     }
   }, [reactFlowInstance, nodes.length]);
+
+  // Dodatkowy effect dla zapewnienia wyśrodkowania po pełnym załadowaniu
+  React.useEffect(() => {
+    if (reactFlowInstance && nodes.length > 0) {
+      // Sprawdź czy ReactFlow jest gotowy i czy węzły są widoczne
+      const checkAndCenter = () => {
+        const viewport = reactFlowInstance.getViewport();
+        const bounds = reactFlowInstance.getNodes().reduce(
+          (acc, node) => {
+            const nodeWithDimensions = reactFlowInstance.getNode(node.id);
+            if (nodeWithDimensions) {
+              return {
+                minX: Math.min(acc.minX, nodeWithDimensions.position.x),
+                minY: Math.min(acc.minY, nodeWithDimensions.position.y),
+                maxX: Math.max(acc.maxX, nodeWithDimensions.position.x + 220),
+                maxY: Math.max(acc.maxY, nodeWithDimensions.position.y + 140),
+              };
+            }
+            return acc;
+          },
+          { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+        );
+
+        // Jeśli bounds są prawidłowe, wyśrodkuj widok
+        if (bounds.minX !== Infinity && bounds.maxX !== -Infinity) {
+          reactFlowInstance.fitView({
+            padding: 0.2,
+            minZoom: 0.1,
+            maxZoom: 1.2,
+            duration: 500,
+          });
+        }
+      };
+
+      // Opóźnienie aby upewnić się, że DOM jest gotowy
+      const finalTimeoutId = setTimeout(checkAndCenter, 500);
+      return () => clearTimeout(finalTimeoutId);
+    }
+  }, [reactFlowInstance, nodes]);
 
   return (
     <ReactFlow
