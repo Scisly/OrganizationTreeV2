@@ -751,7 +751,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             className={styles.reactFlowContainer}
             style={{
               width: `${RESPONSIVE_TREE_WIDTH}px`,
-              height: `768px`,
+              height: `768px`, // Przywrócona pełna wysokość
             }}
           >
             <div className={styles.reactFlowWrapper}>
@@ -768,6 +768,9 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                   hierarchy={hierarchy}
                   toggleTeamFilter={toggleTeamFilter}
                   renderFilterInfo={renderFilterInfo}
+                  onInit={handleReactFlowInit}
+                  searchText={searchText}
+                  handleSearchChange={handleSearchChange}
                 />
               </ReactFlowProvider>
             </div>
