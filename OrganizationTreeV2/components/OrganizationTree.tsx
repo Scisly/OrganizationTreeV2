@@ -595,7 +595,14 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         loadedSurveys.push(survey);
       }
       
-      setSurveys(loadedSurveys);
+      // Sortowanie ankiet alfabetycznie według nazwy
+      const sortedSurveys = loadedSurveys.sort((a, b) => {
+        const nameA = a.msfp_name?.toLowerCase() || '';
+        const nameB = b.msfp_name?.toLowerCase() || '';
+        return nameA.localeCompare(nameB, 'pl', { sensitivity: 'accent' });
+      });
+      
+      setSurveys(sortedSurveys);
       
       // Automatycznie wybierz pierwszą ankietę jeśli nie ma wybranej
       if (loadedSurveys.length > 0 && !selectedSurvey) {
@@ -622,6 +629,22 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   const toggleTeamFilter = React.useCallback(() => {
     setShowOnlyTeam(!showOnlyTeam);
   }, [showOnlyTeam]);
+
+  // Handler dla inicjalizacji ReactFlow
+  const handleReactFlowInit = React.useCallback((instance: ReturnType<typeof useReactFlow>) => {
+    console.log('ReactFlow initialized');
+    // Wyśrodkuj widok od razu po inicjalizacji
+    if (nodes.length > 0) {
+      setTimeout(() => {
+        instance.fitView({
+          padding: 0.2,
+          minZoom: 0.1,
+          maxZoom: 1.2,
+          duration: 300,
+        });
+      }, 100);
+    }
+  }, [nodes.length]);
 
   // Obsługa wyboru ankiety
   const handleSurveySelect = React.useCallback((survey: Survey) => {
