@@ -664,6 +664,11 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
   // Renderowanie informacji o filtrze
   const renderFilterInfo = () => {
+    const totalFilteredNodes = nodes.length;
+    const searchInfo = searchText.trim() 
+      ? ` (znaleziono: ${totalFilteredNodes})` 
+      : '';
+
     if (userId) {
       if (showOnlyTeam) {
         // Znajdź użytkownika po ag_userid z obsługą różnych formatów GUID
@@ -685,13 +690,13 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
         return (
           <Text className={styles.filterInfo}>
-            Widok zespołu: {currentUser?.name ?? "Nieznany użytkownik"}
+            Widok zespołu: {currentUser?.name ?? "Nieznany użytkownik"}{searchInfo}
           </Text>
         );
       } else {
         return (
           <Text className={styles.filterInfo}>
-            Pełna hierarchia organizacyjna
+            Pełna hierarchia organizacyjna{searchInfo}
           </Text>
         );
       }
@@ -699,7 +704,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
     return (
       <Text className={styles.filterInfo}>
-        Hierarchia organizacyjna (brak identyfikatora użytkownika)
+        Hierarchia organizacyjna (brak identyfikatora użytkownika){searchInfo}
       </Text>
     );
   };
