@@ -16,11 +16,19 @@ export class OrganizationService {
   ): { hierarchy: OrganizationPerson[]; allPeople: OrganizationPerson[] } {
     const people: OrganizationPerson[] = [];
 
-    // Sprawdź czy istnieją dodatkowe strony danych
-    if (dataSet.paging?.hasNextPage) {
-      console.warn(
-        "UWAGA: Dataset ma więcej stron danych. Tylko pierwsza strona jest załadowana."
-      );
+    if (!dataSet || dataSet.loading) {
+      return { hierarchy: [], allPeople: [] };
+    }
+
+    if (!dataSet.sortedRecordIds || dataSet.sortedRecordIds.length === 0) {
+      if (dataSet.paging?.hasNextPage && dataSet.paging.loadNextPage) {
+        void dataSet.paging.loadNextPage();
+      }
+      return { hierarchy: [], allPeople: [] };
+    }
+
+    if (!dataSet.loading && dataSet.paging?.hasNextPage && dataSet.paging.loadNextPage) {
+      void dataSet.paging.loadNextPage();
     }
 
     // Konwersja danych z DataSet

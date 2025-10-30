@@ -24,6 +24,9 @@ export interface OrganizationNode {
     allPeople?: OrganizationPerson[];
     showSurveyButton?: boolean;
     surveyResponse?: SurveyResponse;
+    onToggleCollapse?: (personId: string) => void;
+    isCollapsed?: boolean;
+    hasChildren?: boolean;
   };
 }
 

@@ -14,6 +14,8 @@ import {
   PersonCircle20Regular,
   QuestionCircle20Regular,
   DocumentSearch20Regular,
+  ChevronDown20Regular,
+  ChevronRight20Regular,
 } from "@fluentui/react-icons";
 import { OrganizationPerson, SurveyResponse, SelectedSurvey } from "../types/OrganizationTypes";
 import { OrganizationService } from "../services/OrganizationService";
@@ -116,6 +118,10 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorBrandBackground,
     ...shorthands.border("2px", "solid", tokens.colorNeutralBackground1),
   },
+  collapseButton: {
+    minWidth: "28px",
+    height: "28px",
+  },
 });
 
 export interface PersonNodeProps {
@@ -129,6 +135,9 @@ export interface PersonNodeProps {
     fullHierarchy: OrganizationPerson[];
     allPeople?: OrganizationPerson[];
     showSurveyButton?: boolean;
+    onToggleCollapse?: (personId: string) => void;
+    isCollapsed?: boolean;
+    hasChildren?: boolean;
   };
 }
 
@@ -144,6 +153,9 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
     fullHierarchy,
     allPeople,
     showSurveyButton,
+    onToggleCollapse,
+    isCollapsed,
+    hasChildren,
   } = data;
 
   const handleSurveyClick = (event: React.MouseEvent) => {
@@ -193,6 +205,16 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
         responseUrl: surveyResponse?.responseUrl,
         hasOnResponseClick: !!onResponseClick
       });
+    }
+  };
+
+  const handleToggleCollapse = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
+    event.nativeEvent.stopImmediatePropagation();
+
+    if (onToggleCollapse) {
+      onToggleCollapse(person.id);
     }
   };
 
@@ -262,6 +284,26 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
             header={
               <div className={styles.headerContent}>
                 <Text className={styles.personName}>{person.name}</Text>
+                {hasChildren && (
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    className={styles.collapseButton}
+                    icon={
+                      isCollapsed ? (
+                        <ChevronRight20Regular />
+                      ) : (
+                        <ChevronDown20Regular />
+                      )
+                    }
+                    onClick={handleToggleCollapse}
+                    aria-label={
+                      isCollapsed
+                        ? "Rozwiń podwładnych"
+                        : "Zwiń podwładnych"
+                    }
+                  />
+                )}
               </div>
             }
           />

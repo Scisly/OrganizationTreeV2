@@ -55,7 +55,7 @@ export class OrganizationTreeV2
     // Podstawowe informacje o datasecie dla debugowania
     const recordCount =
       context.parameters.organizationDataSet?.sortedRecordIds?.length ?? 0;
-    if (recordCount === 0) {
+    if (!context.parameters.organizationDataSet.loading && recordCount === 0) {
       console.warn("OrganizationTreeV2: Brak danych w datasecie");
     }
 

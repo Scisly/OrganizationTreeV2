@@ -26,6 +26,7 @@ import {
   CardHeader,
   CardPreview,
   Input,
+  Spinner,
 } from "@fluentui/react-components";
 import { PersonNode } from "./PersonNode";
 import { OrganizationService } from "../services/OrganizationService";
@@ -211,6 +212,7 @@ const ReactFlowContent: React.FC<{
   onInit: (instance: ReturnType<typeof useReactFlow>) => void;
   searchText: string;
   handleSearchChange: (text: string) => void;
+  primaryRootId?: string;
 }> = ({
   nodes,
   edges,
@@ -224,6 +226,7 @@ const ReactFlowContent: React.FC<{
   onInit,
   searchText,
   handleSearchChange,
+  primaryRootId,
 }) => {
   const reactFlowInstance = useReactFlow();
 
@@ -244,36 +247,53 @@ const ReactFlowContent: React.FC<{
             maxZoom: 1.2, // Zmniejsz maksymalne zoom dla lepszej czytelności
             duration: 800, // Dodaj animację
           });
+
+          if (primaryRootId) {
+            const rootNode = reactFlowInstance.getNode(primaryRootId);
+            if (rootNode) {
+              const rootWidth = rootNode.width ?? 220;
+              const rootHeight = rootNode.height ?? 140;
+              const currentZoom = reactFlowInstance.getZoom();
+
+              reactFlowInstance.setCenter(
+                rootNode.position.x + rootWidth / 2,
+                rootNode.position.y + rootHeight / 2,
+                {
+                  duration: 500,
+                  zoom: currentZoom,
+                }
+              );
+            }
+          }
         }
       }, 300); // Zwiększ opóźnienie do 300ms
       return () => clearTimeout(timeoutId);
     }
-  }, [reactFlowInstance, nodes.length]);
+  }, [reactFlowInstance, nodes.length, primaryRootId]);
 
   // Dodatkowy effect dla zapewnienia wyśrodkowania po pełnym załadowaniu
   React.useEffect(() => {
     if (reactFlowInstance && nodes.length > 0) {
       // Sprawdź czy ReactFlow jest gotowy i czy węzły są widoczne
       const checkAndCenter = () => {
-        const viewport = reactFlowInstance.getViewport();
-        const bounds = reactFlowInstance.getNodes().reduce(
-          (acc, node) => {
-            const nodeWithDimensions = reactFlowInstance.getNode(node.id);
-            if (nodeWithDimensions) {
-              return {
-                minX: Math.min(acc.minX, nodeWithDimensions.position.x),
-                minY: Math.min(acc.minY, nodeWithDimensions.position.y),
-                maxX: Math.max(acc.maxX, nodeWithDimensions.position.x + 220),
-                maxY: Math.max(acc.maxY, nodeWithDimensions.position.y + 140),
-              };
-            }
-            return acc;
-          },
-          { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
-        );
+        const rootNode = primaryRootId
+          ? reactFlowInstance.getNode(primaryRootId)
+          : null;
 
-        // Jeśli bounds są prawidłowe, wyśrodkuj widok
-        if (bounds.minX !== Infinity && bounds.maxX !== -Infinity) {
+        if (rootNode) {
+          const rootWidth = rootNode.width ?? 220;
+          const rootHeight = rootNode.height ?? 140;
+          const currentZoom = reactFlowInstance.getZoom();
+
+          reactFlowInstance.setCenter(
+            rootNode.position.x + rootWidth / 2,
+            rootNode.position.y + rootHeight / 2,
+            {
+              duration: 500,
+              zoom: currentZoom,
+            }
+          );
+        } else {
           reactFlowInstance.fitView({
             padding: 0.2,
             minZoom: 0.1,
@@ -287,7 +307,7 @@ const ReactFlowContent: React.FC<{
       const finalTimeoutId = setTimeout(checkAndCenter, 500);
       return () => clearTimeout(finalTimeoutId);
     }
-  }, [reactFlowInstance, nodes]);
+  }, [reactFlowInstance, nodes, primaryRootId]);
 
   return (
     <ReactFlow
@@ -397,7 +417,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [showOnlyTeam, setShowOnlyTeam] = React.useState(true); // Domyślnie pokaż zespół
+  const [showOnlyTeam, setShowOnlyTeam] = React.useState(false); // Domyślnie pełna hierarchia
   const [hierarchy, setHierarchy] = React.useState<OrganizationPerson[]>([]);
   const [fullHierarchy, setFullHierarchy] = React.useState<
     OrganizationPerson[]
@@ -410,6 +430,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   const [selectedSurvey, setSelectedSurvey] = React.useState<SelectedSurvey | null>(null);
   const [isLoadingAllData, setIsLoadingAllData] = React.useState(false);
   const [searchText, setSearchText] = React.useState<string>("");
+  const [collapsedNodeIds, setCollapsedNodeIds] = React.useState<string[]>([]);
+  const collapseInitializedRef = React.useRef(false);
 
   // Funkcja do ładowania wszystkich stron danych
   const loadAllPages = React.useCallback(() => {
@@ -500,8 +522,59 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     return filterRecursive(people);
   }, []);
 
+  const handleToggleCollapse = React.useCallback((personId: string) => {
+    setCollapsedNodeIds((previous) => {
+      if (previous.includes(personId)) {
+        return previous.filter((id) => id !== personId);
+      }
+      return [...previous, personId];
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (!hierarchy.length) {
+      setCollapsedNodeIds([]);
+      collapseInitializedRef.current = false;
+      return;
+    }
+
+    const allIds: string[] = [];
+    const collectIds = (people: OrganizationPerson[]) => {
+      people.forEach((person) => {
+        allIds.push(person.id);
+        if (person.children && person.children.length > 0) {
+          collectIds(person.children);
+        }
+      });
+    };
+
+    collectIds(hierarchy);
+
+    const validIds = new Set(allIds);
+    const rootIds = hierarchy.map((person) => person.id);
+
+    setCollapsedNodeIds((previous) => {
+      const sanitized = previous.filter((id) => validIds.has(id));
+
+      if (
+        !collapseInitializedRef.current &&
+        searchText.trim() === "" &&
+        hierarchy.length > 0
+      ) {
+        const defaultCollapsed = allIds.filter((id) => !rootIds.includes(id));
+        collapseInitializedRef.current = true;
+        return defaultCollapsed;
+      }
+
+      if (sanitized.length !== previous.length) {
+        return sanitized;
+      }
+
+      return previous;
+    });
+  }, [hierarchy, searchText]);
+
   const buildLayout = React.useCallback(() => {
-    // Najpierw zbuduj pełną hierarchię (bez filtrów) i pobierz wszystkie osoby
     const {
       hierarchy: fullOrganizationHierarchy,
       allPeople: allPeopleData,
@@ -514,30 +587,112 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       showOnlyTeam,
     };
 
-    const {
-      hierarchy: organizationHierarchy,
-    } = OrganizationService.buildHierarchyWithPeople(dataSet, filterOptions);
-    
-    // Zastosuj filtrowanie po nazwie jeśli tekst wyszukiwania nie jest pusty
-    const filteredHierarchy = filterPeopleByName(organizationHierarchy, searchText);
+    const { hierarchy: organizationHierarchy } =
+      OrganizationService.buildHierarchyWithPeople(dataSet, filterOptions);
+
+    const filteredHierarchy = filterPeopleByName(
+      organizationHierarchy,
+      searchText
+    );
     setHierarchy(filteredHierarchy);
 
-    const {
-      nodes: layoutNodes,
-      edges: layoutEdges,
-    } = LayoutService.createTreeLayout(
-      filteredHierarchy,
-      handleSurveyClick,
-      handleResponseClick,
-      surveyResponses,
-      selectedSurvey ?? undefined,
-      userId,
-      fullOrganizationHierarchy,
-      allPeopleData
+    const filteredHierarchyIds: string[] = [];
+    const collectIds = (people: OrganizationPerson[]) => {
+      people.forEach((person) => {
+        filteredHierarchyIds.push(person.id);
+        if (person.children && person.children.length > 0) {
+          collectIds(person.children);
+        }
+      });
+    };
+
+    collectIds(filteredHierarchy);
+
+    const rootIds = filteredHierarchy.map((person) => person.id);
+
+    let effectiveCollapsedIds = collapsedNodeIds;
+
+    if (
+      !collapseInitializedRef.current &&
+      collapsedNodeIds.length === 0 &&
+      filteredHierarchy.length > 0 &&
+      searchText.trim() === ""
+    ) {
+      const defaultCollapsed = filteredHierarchyIds.filter(
+        (id) => !rootIds.includes(id)
+      );
+      collapseInitializedRef.current = true;
+      effectiveCollapsedIds = defaultCollapsed;
+      setCollapsedNodeIds(defaultCollapsed);
+    }
+
+    const collapsedSet = new Set(effectiveCollapsedIds);
+
+    const applyCollapseToHierarchy = (
+      people: OrganizationPerson[]
+    ): OrganizationPerson[] =>
+      people.map((person) => {
+        const originalChildren = person.children ?? [];
+        const visibleChildren =
+          !collapsedSet.has(person.id) && originalChildren.length > 0
+            ? applyCollapseToHierarchy(originalChildren)
+            : [];
+
+        return {
+          ...person,
+          children: visibleChildren,
+        };
+      });
+
+    const visibleHierarchy = applyCollapseToHierarchy(filteredHierarchy);
+
+    const { nodes: layoutNodes, edges: layoutEdges } =
+      LayoutService.createTreeLayout(
+        visibleHierarchy,
+        handleSurveyClick,
+        handleResponseClick,
+        surveyResponses,
+        selectedSurvey ?? undefined,
+        userId,
+        fullOrganizationHierarchy,
+        allPeopleData
+      );
+
+    const parentsWithChildren = new Set<string>();
+    const markParents = (people: OrganizationPerson[]) => {
+      people.forEach((person) => {
+        if (person.children && person.children.length > 0) {
+          parentsWithChildren.add(person.id);
+          markParents(person.children);
+        }
+      });
+    };
+
+    markParents(fullOrganizationHierarchy);
+
+    const nodeIdSet = new Set<string>();
+    const nodesWithMetadata = layoutNodes.map((node) => {
+      nodeIdSet.add(node.id);
+      const hasChildren = parentsWithChildren.has(node.id);
+      const isCollapsed = hasChildren ? collapsedSet.has(node.id) : false;
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          hasChildren,
+          isCollapsed,
+          onToggleCollapse: hasChildren ? handleToggleCollapse : undefined,
+        },
+      };
+    });
+
+    const filteredEdges = layoutEdges.filter(
+      (edge) => nodeIdSet.has(edge.source) && nodeIdSet.has(edge.target)
     );
 
-    setNodes(layoutNodes);
-    setEdges(layoutEdges);
+    setNodes(nodesWithMetadata);
+    setEdges(filteredEdges);
   }, [
     dataSet,
     selectedSurvey,
@@ -550,6 +705,8 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     filterPeopleByName,
     setNodes,
     setEdges,
+    collapsedNodeIds,
+    handleToggleCollapse,
   ]);
 
   // Efekt do odbudowy layoutu przy zmianie danych
@@ -630,21 +787,44 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     setShowOnlyTeam(!showOnlyTeam);
   }, [showOnlyTeam]);
 
+  const primaryRootId = React.useMemo(() => hierarchy[0]?.id, [hierarchy]);
+
   // Handler dla inicjalizacji ReactFlow
-  const handleReactFlowInit = React.useCallback((instance: ReturnType<typeof useReactFlow>) => {
-    console.log('ReactFlow initialized');
-    // Wyśrodkuj widok od razu po inicjalizacji
-    if (nodes.length > 0) {
-      setTimeout(() => {
-        instance.fitView({
-          padding: 0.2,
-          minZoom: 0.1,
-          maxZoom: 1.2,
-          duration: 300,
-        });
-      }, 100);
-    }
-  }, [nodes.length]);
+  const handleReactFlowInit = React.useCallback(
+    (instance: ReturnType<typeof useReactFlow>) => {
+      console.log("ReactFlow initialized");
+
+      if (nodes.length > 0) {
+        setTimeout(() => {
+          instance.fitView({
+            padding: 0.2,
+            minZoom: 0.1,
+            maxZoom: 1.2,
+            duration: 300,
+          });
+
+          if (primaryRootId) {
+            const rootNode = instance.getNode(primaryRootId);
+            if (rootNode) {
+              const rootWidth = rootNode.width ?? 220;
+              const rootHeight = rootNode.height ?? 140;
+              const currentZoom = instance.getZoom();
+
+              instance.setCenter(
+                rootNode.position.x + rootWidth / 2,
+                rootNode.position.y + rootHeight / 2,
+                {
+                  duration: 300,
+                  zoom: currentZoom,
+                }
+              );
+            }
+          }
+        }, 100);
+      }
+    },
+    [nodes.length, primaryRootId]
+  );
 
   // Obsługa wyboru ankiety
   const handleSurveySelect = React.useCallback((survey: Survey) => {
@@ -709,7 +889,28 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     );
   };
 
-  if (!dataSet?.sortedRecordIds?.length) {
+  const hasRecords = (dataSet?.sortedRecordIds?.length ?? 0) > 0;
+  const isDatasetPending = Boolean(dataSet?.loading) || (!hasRecords && Boolean(dataSet?.paging?.hasNextPage));
+
+  if (!hasRecords) {
+    if (isDatasetPending) {
+      return (
+        <FluentProvider theme={webLightTheme}>
+          <div
+            className={styles.container}
+            style={{
+              width: `${RESPONSIVE_CONTAINER_WIDTH}px`,
+              height: `768px`,
+            }}
+          >
+            <div className={styles.emptyState}>
+              <Spinner size="medium" label="Ładowanie danych organizacyjnych..." />
+            </div>
+          </div>
+        </FluentProvider>
+      );
+    }
+
     return (
       <FluentProvider theme={webLightTheme}>
         <div 
@@ -771,6 +972,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                   onInit={handleReactFlowInit}
                   searchText={searchText}
                   handleSearchChange={handleSearchChange}
+                  primaryRootId={primaryRootId}
                 />
               </ReactFlowProvider>
             </div>
