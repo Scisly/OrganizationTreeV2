@@ -230,70 +230,37 @@ const ReactFlowContent: React.FC<{
 }) => {
   const reactFlowInstance = useReactFlow();
 
-  // Auto fitView po załadowaniu węzłów z lepszą logiką wyśrodkowania
+  // Auto centrowanie widoku na zalogowanym użytkowniku
   React.useEffect(() => {
     if (reactFlowInstance && nodes.length > 0) {
-      // Użyj większego opóźnienia aby upewnić się, że węzły są w pełni wyrenderowane
       const timeoutId = setTimeout(() => {
         // Najpierw sprawdź czy wszystkie węzły mają prawidłowe pozycje
         const nodesWithValidPositions = nodes.filter(
           node => node.position.x !== undefined && node.position.y !== undefined
         );
-        
+
         if (nodesWithValidPositions.length === nodes.length) {
-          reactFlowInstance.fitView({
-            padding: 0.2, // Zwiększ padding dla lepszego wyświetlania
-            minZoom: 0.1,
-            maxZoom: 1.2, // Zmniejsz maksymalne zoom dla lepszej czytelności
-            duration: 800, // Dodaj animację
-          });
-
+          // Jeśli mamy primaryRootId (zalogowany użytkownik), wyśrodkuj na nim
           if (primaryRootId) {
-            const rootNode = reactFlowInstance.getNode(primaryRootId);
-            if (rootNode) {
-              const rootWidth = rootNode.width ?? 220;
-              const rootHeight = rootNode.height ?? 140;
-              const currentZoom = reactFlowInstance.getZoom();
+            const userNode = reactFlowInstance.getNode(primaryRootId);
+            if (userNode) {
+              const nodeWidth = userNode.width ?? 253;
+              const nodeHeight = userNode.height ?? 161;
 
+              // Wyśrodkuj na użytkowniku z odpowiednim zoomem
               reactFlowInstance.setCenter(
-                rootNode.position.x + rootWidth / 2,
-                rootNode.position.y + rootHeight / 2,
+                userNode.position.x + nodeWidth / 2,
+                userNode.position.y + nodeHeight / 2,
                 {
                   duration: 500,
-                  zoom: currentZoom,
+                  zoom: 0.8, // Stały zoom dla dobrej widoczności użytkownika i kontekstu
                 }
               );
+              return;
             }
           }
-        }
-      }, 300); // Zwiększ opóźnienie do 300ms
-      return () => clearTimeout(timeoutId);
-    }
-  }, [reactFlowInstance, nodes.length, primaryRootId]);
 
-  // Dodatkowy effect dla zapewnienia wyśrodkowania po pełnym załadowaniu
-  React.useEffect(() => {
-    if (reactFlowInstance && nodes.length > 0) {
-      // Sprawdź czy ReactFlow jest gotowy i czy węzły są widoczne
-      const checkAndCenter = () => {
-        const rootNode = primaryRootId
-          ? reactFlowInstance.getNode(primaryRootId)
-          : null;
-
-        if (rootNode) {
-          const rootWidth = rootNode.width ?? 220;
-          const rootHeight = rootNode.height ?? 140;
-          const currentZoom = reactFlowInstance.getZoom();
-
-          reactFlowInstance.setCenter(
-            rootNode.position.x + rootWidth / 2,
-            rootNode.position.y + rootHeight / 2,
-            {
-              duration: 500,
-              zoom: currentZoom,
-            }
-          );
-        } else {
+          // Fallback: jeśli nie ma użytkownika, dopasuj całe drzewo
           reactFlowInstance.fitView({
             padding: 0.2,
             minZoom: 0.1,
@@ -301,13 +268,10 @@ const ReactFlowContent: React.FC<{
             duration: 500,
           });
         }
-      };
-
-      // Opóźnienie aby upewnić się, że DOM jest gotowy
-      const finalTimeoutId = setTimeout(checkAndCenter, 500);
-      return () => clearTimeout(finalTimeoutId);
+      }, 300);
+      return () => clearTimeout(timeoutId);
     }
-  }, [reactFlowInstance, nodes, primaryRootId]);
+  }, [reactFlowInstance, nodes.length, primaryRootId]);
 
   return (
     <ReactFlow
@@ -325,7 +289,7 @@ const ReactFlowContent: React.FC<{
       zoomOnScroll={true}
       zoomOnPinch={true}
       onInit={onInit}
-      fitView
+      fitView={!primaryRootId}
       fitViewOptions={{
         padding: 0.2,
         minZoom: 0.1,
@@ -800,30 +764,32 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
       if (nodes.length > 0) {
         setTimeout(() => {
+          // Jeśli mamy primaryRootId (zalogowany użytkownik), wyśrodkuj na nim
+          if (primaryRootId) {
+            const userNode = instance.getNode(primaryRootId);
+            if (userNode) {
+              const nodeWidth = userNode.width ?? 253;
+              const nodeHeight = userNode.height ?? 161;
+
+              instance.setCenter(
+                userNode.position.x + nodeWidth / 2,
+                userNode.position.y + nodeHeight / 2,
+                {
+                  duration: 300,
+                  zoom: 0.8,
+                }
+              );
+              return;
+            }
+          }
+
+          // Fallback: dopasuj całe drzewo
           instance.fitView({
             padding: 0.2,
             minZoom: 0.1,
             maxZoom: 1.2,
             duration: 300,
           });
-
-          if (primaryRootId) {
-            const rootNode = instance.getNode(primaryRootId);
-            if (rootNode) {
-              const rootWidth = rootNode.width ?? 220;
-              const rootHeight = rootNode.height ?? 140;
-              const currentZoom = instance.getZoom();
-
-              instance.setCenter(
-                rootNode.position.x + rootWidth / 2,
-                rootNode.position.y + rootHeight / 2,
-                {
-                  duration: 300,
-                  zoom: currentZoom,
-                }
-              );
-            }
-          }
         }, 100);
       }
     },
