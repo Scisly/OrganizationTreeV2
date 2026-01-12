@@ -787,7 +787,30 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     setShowOnlyTeam(!showOnlyTeam);
   }, [showOnlyTeam]);
 
-  const primaryRootId = React.useMemo(() => hierarchy[0]?.id, [hierarchy]);
+  // Znajdź ID węzła obecnego użytkownika do centrowania widoku
+  const primaryRootId = React.useMemo(() => {
+    if (!userId || allPeople.length === 0) {
+      return hierarchy[0]?.id;
+    }
+
+    // Najpierw spróbuj dokładnego dopasowania po ag_userid
+    let currentUser = allPeople.find((person) => person.ag_userid === userId);
+
+    // Jeśli nie znaleziono, spróbuj z normalizacją GUID (bez klamr i myślników)
+    if (!currentUser) {
+      const cleanUserId = userId.replace(/[{}-]/g, "").toLowerCase();
+      currentUser = allPeople.find((person) => {
+        if (!person.ag_userid) return false;
+        const cleanAgUserId = person.ag_userid
+          .replace(/[{}-]/g, "")
+          .toLowerCase();
+        return cleanAgUserId === cleanUserId;
+      });
+    }
+
+    // Zwróć ID znalezionego użytkownika lub fallback do pierwszego roota
+    return currentUser?.id ?? hierarchy[0]?.id;
+  }, [userId, allPeople, hierarchy]);
 
   // Handler dla inicjalizacji ReactFlow
   const handleReactFlowInit = React.useCallback(

@@ -505,4 +505,15 @@ export class OrganizationService {
   ): SurveyResponse | undefined {
     return responses.find((response) => response.personId === personId);
   }
+
+  /**
+   * Sprawdza czy osoba ma podwładnych (jest przełożonym)
+   */
+  public static hasSubordinates(
+    personId: string,
+    allPeople: OrganizationPerson[]
+  ): boolean {
+    // Sprawdź czy istnieją osoby które mają tę osobę jako managera
+    return allPeople.some((person) => person.managerId === personId);
+  }
 }

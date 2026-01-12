@@ -23,8 +23,8 @@ import { Glow, GlowCapture } from "@codaworks/react-glow";
 
 const useStyles = makeStyles({
   card: {
-    width: "220px",
-    minHeight: "120px",
+    width: "253px", // Zwiększone o 15% (220 * 1.15) dla lepszej czytelności
+    minHeight: "138px", // Proporcjonalnie zwiększone (120 * 1.15)
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.border("1px", "solid", tokens.colorNeutralStroke1),
     boxShadow: tokens.shadow8,
@@ -234,6 +234,29 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
   // Sprawdź czy pokazać wskazówkę ankiety (tylko dla zespołu aktualnego użytkownika)
   const shouldShowSurveyIndicator = shouldShowSurveyButton;
 
+  // Sprawdź czy osoba ma podwładnych (jest przełożonym)
+  const personHasSubordinates = allPeople
+    ? OrganizationService.hasSubordinates(person.id, allPeople)
+    : false;
+
+  // Sprawdź czy ankieta wymaga bycia przełożonym (Stage 2 lub Stage 3)
+  const isSupervisorOnlySurvey =
+    selectedSurvey &&
+    (selectedSurvey.name.includes("Stage 2") ||
+      selectedSurvey.name.includes("Stage 3"));
+
+  // Wyłącz przycisk ankiety jeśli:
+  // - Ankieta to Stage 2/3 AND osoba nie ma podwładnych
+  const isSurveyButtonDisabled =
+    isSupervisorOnlySurvey && !personHasSubordinates;
+
+  // Tooltip wyjaśniający dlaczego przycisk jest wyłączony
+  const surveyButtonTooltip = isSurveyButtonDisabled
+    ? "Ankieta dostępna tylko dla przełożonych"
+    : hasResponse
+    ? "Kliknij aby wyświetlić odpowiedzi"
+    : "Kliknij aby otworzyć ankietę";
+
   return (
     <>
       <Handle
@@ -324,6 +347,8 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
                   size="small"
                   icon={<DocumentSearch20Regular />}
                   onClick={handleResponseClick}
+                  disabled={isSurveyButtonDisabled}
+                  title={surveyButtonTooltip}
                 >
                   Wyświetl odpowiedzi
                 </Button>
@@ -334,6 +359,8 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
                   size="small"
                   icon={<QuestionCircle20Regular />}
                   onClick={handleSurveyClick}
+                  disabled={isSurveyButtonDisabled}
+                  title={surveyButtonTooltip}
                 >
                   Otwórz ankietę
                 </Button>
