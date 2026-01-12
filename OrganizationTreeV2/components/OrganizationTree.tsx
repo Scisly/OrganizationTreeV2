@@ -417,7 +417,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [showOnlyTeam, setShowOnlyTeam] = React.useState(false); // Domyślnie pełna hierarchia
+  const [showOnlyTeam, setShowOnlyTeam] = React.useState(true); // Domyślnie widok zespołu (tylko bezpośredni podwładni)
   const [hierarchy, setHierarchy] = React.useState<OrganizationPerson[]>([]);
   const [fullHierarchy, setFullHierarchy] = React.useState<
     OrganizationPerson[]
