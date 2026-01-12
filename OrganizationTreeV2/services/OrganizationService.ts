@@ -160,13 +160,18 @@ export class OrganizationService {
       return []; // Nie znaleziono użytkownika
     }
 
-    // Zbuduj pełną hierarchię podwładnych rekursywnie
+    // Zbuduj hierarchię podwładnych (tylko bezpośredni podwładni - maxDepth=1)
     const userWithTeam: OrganizationPerson = {
       ...currentUser,
-      children: this.buildSubordinatesHierarchy(allPeople, currentUser.id),
+      children: this.buildSubordinatesHierarchy(
+        allPeople,
+        currentUser.id,
+        0,      // poziom startuje od 0
+        1       // maxDepth=1 - pokazuj tylko bezpośrednich podwładnych
+      ),
     };
 
-    // Zwróć użytkownika z jego pełną hierarchią jako root
+    // Zwróć użytkownika z hierarchią bezpośrednich podwładnych jako root
     return [userWithTeam];
   }
 
@@ -396,8 +401,14 @@ export class OrganizationService {
   private static buildSubordinatesHierarchy(
     allPeople: OrganizationPerson[],
     managerId: string,
-    level = 0
+    level = 0,
+    maxDepth = Infinity  // Domyślnie nieograniczona głębokość (kompatybilność wsteczna)
   ): OrganizationPerson[] {
+    // Zatrzymaj rekurencję jeśli osiągnięto maksymalną głębokość
+    if (level >= maxDepth) {
+      return [];
+    }
+
     // Znajdź bezpośrednich podwładnych tego managera
     const directSubordinates = allPeople.filter(
       (person) => person.managerId === managerId
@@ -409,7 +420,8 @@ export class OrganizationService {
       children: this.buildSubordinatesHierarchy(
         allPeople,
         subordinate.id,
-        level + 1
+        level + 1,
+        maxDepth  // Przekaż maxDepth do rekurencyjnych wywołań
       ),
     }));
   }
