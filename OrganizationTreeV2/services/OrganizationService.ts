@@ -505,4 +505,45 @@ export class OrganizationService {
   ): SurveyResponse | undefined {
     return responses.find((response) => response.personId === personId);
   }
+
+  /**
+   * Sprawdza czy osoba ma podwładnych (jest przełożonym)
+   */
+  public static hasSubordinates(
+    personId: string,
+    allPeople: OrganizationPerson[]
+  ): boolean {
+    // Sprawdź czy istnieją osoby które mają tę osobę jako managera
+    return allPeople.some((person) => person.managerId === personId);
+  }
+
+  /**
+   * Znajduje użytkownika po ag_userid z obsługą różnych formatów GUID
+   * Obsługuje zarówno format z klamrami {GUID} jak i bez
+   */
+  public static findUserByUserId(
+    userId: string,
+    allPeople: OrganizationPerson[]
+  ): OrganizationPerson | undefined {
+    if (!userId || allPeople.length === 0) {
+      return undefined;
+    }
+
+    // Najpierw spróbuj dokładnego dopasowania po ag_userid
+    let currentUser = allPeople.find((person) => person.ag_userid === userId);
+
+    // Jeśli nie znaleziono, spróbuj z normalizacją GUID (bez klamr i myślników)
+    if (!currentUser) {
+      const cleanUserId = userId.replace(/[{}-]/g, "").toLowerCase();
+      currentUser = allPeople.find((person) => {
+        if (!person.ag_userid) return false;
+        const cleanAgUserId = person.ag_userid
+          .replace(/[{}-]/g, "")
+          .toLowerCase();
+        return cleanAgUserId === cleanUserId;
+      });
+    }
+
+    return currentUser;
+  }
 }

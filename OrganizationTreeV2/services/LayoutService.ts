@@ -8,8 +8,8 @@ import {
 } from "../types/OrganizationTypes";
 
 export class LayoutService {
-  private static readonly NODE_WIDTH = 220;
-  private static readonly NODE_HEIGHT = 140;
+  private static readonly NODE_WIDTH = 253; // Zwiększone o 15% (220 * 1.15)
+  private static readonly NODE_HEIGHT = 161; // Zwiększone o 15% (140 * 1.15)
   private static readonly RANK_SEPARATION = 80;
   private static readonly NODE_SEPARATION = 60;
 
