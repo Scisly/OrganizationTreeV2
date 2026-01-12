@@ -789,26 +789,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
   // Znajdź ID węzła obecnego użytkownika do centrowania widoku
   const primaryRootId = React.useMemo(() => {
-    if (!userId || allPeople.length === 0) {
-      return hierarchy[0]?.id;
-    }
-
-    // Najpierw spróbuj dokładnego dopasowania po ag_userid
-    let currentUser = allPeople.find((person) => person.ag_userid === userId);
-
-    // Jeśli nie znaleziono, spróbuj z normalizacją GUID (bez klamr i myślników)
-    if (!currentUser) {
-      const cleanUserId = userId.replace(/[{}-]/g, "").toLowerCase();
-      currentUser = allPeople.find((person) => {
-        if (!person.ag_userid) return false;
-        const cleanAgUserId = person.ag_userid
-          .replace(/[{}-]/g, "")
-          .toLowerCase();
-        return cleanAgUserId === cleanUserId;
-      });
-    }
-
-    // Zwróć ID znalezionego użytkownika lub fallback do pierwszego roota
+    const currentUser = OrganizationService.findUserByUserId(userId ?? "", allPeople);
     return currentUser?.id ?? hierarchy[0]?.id;
   }, [userId, allPeople, hierarchy]);
 
@@ -868,28 +849,14 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   // Renderowanie informacji o filtrze
   const renderFilterInfo = () => {
     const totalFilteredNodes = nodes.length;
-    const searchInfo = searchText.trim() 
-      ? ` (znaleziono: ${totalFilteredNodes})` 
+    const searchInfo = searchText.trim()
+      ? ` (znaleziono: ${totalFilteredNodes})`
       : '';
 
     if (userId) {
       if (showOnlyTeam) {
         // Znajdź użytkownika po ag_userid z obsługą różnych formatów GUID
-        let currentUser = allPeople.find(
-          (person) => person.ag_userid === userId
-        );
-
-        // Jeśli nie znaleziono, spróbuj oczyszczony format GUID
-        if (!currentUser && userId) {
-          const cleanUserId = userId.replace(/[{}-]/g, "").toLowerCase();
-          currentUser = allPeople.find((person) => {
-            if (!person.ag_userid) return false;
-            const cleanAgUserId = person.ag_userid
-              .replace(/[{}-]/g, "")
-              .toLowerCase();
-            return cleanAgUserId === cleanUserId;
-          });
-        }
+        const currentUser = OrganizationService.findUserByUserId(userId, allPeople);
 
         return (
           <Text className={styles.filterInfo}>
