@@ -253,20 +253,27 @@ const ReactFlowContent: React.FC<{
                 userNode.position.y + nodeHeight / 2,
                 {
                   duration: 500,
-                  zoom: 0.8, // Stały zoom dla dobrej widoczności użytkownika i kontekstu
+                  zoom: 1.0, // Większy zoom dla lepszej czytelności węzłów
                 }
               );
               return;
             }
           }
 
-          // Fallback: jeśli nie ma użytkownika, dopasuj całe drzewo
-          reactFlowInstance.fitView({
-            padding: 0.2,
-            minZoom: 0.1,
-            maxZoom: 1.2,
-            duration: 500,
-          });
+          // Fallback: jeśli nie ma użytkownika, wyśrodkuj na pierwszym węźle z zoomem 1.0
+          const firstNode = nodes[0];
+          if (firstNode) {
+            const nodeWidth = 253;
+            const nodeHeight = 161;
+            reactFlowInstance.setCenter(
+              firstNode.position.x + nodeWidth / 2,
+              firstNode.position.y + nodeHeight / 2,
+              {
+                duration: 500,
+                zoom: 1.0,
+              }
+            );
+          }
         }
       }, 300);
       return () => clearTimeout(timeoutId);
@@ -289,13 +296,7 @@ const ReactFlowContent: React.FC<{
       zoomOnScroll={true}
       zoomOnPinch={true}
       onInit={onInit}
-      fitView={!primaryRootId}
-      fitViewOptions={{
-        padding: 0.2,
-        minZoom: 0.1,
-        maxZoom: 1.2,
-        includeHiddenNodes: false,
-      }}
+      fitView={false}
       minZoom={0.1}
       maxZoom={2}
       style={{ width: '100%', height: '100%' }}
@@ -776,20 +777,27 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                 userNode.position.y + nodeHeight / 2,
                 {
                   duration: 300,
-                  zoom: 0.8,
+                  zoom: 1.0,
                 }
               );
               return;
             }
           }
 
-          // Fallback: dopasuj całe drzewo
-          instance.fitView({
-            padding: 0.2,
-            minZoom: 0.1,
-            maxZoom: 1.2,
-            duration: 300,
-          });
+          // Fallback: wyśrodkuj na pierwszym węźle z zoomem 1.0
+          const firstNode = instance.getNodes()[0];
+          if (firstNode) {
+            const nodeWidth = 253;
+            const nodeHeight = 161;
+            instance.setCenter(
+              firstNode.position.x + nodeWidth / 2,
+              firstNode.position.y + nodeHeight / 2,
+              {
+                duration: 300,
+                zoom: 1.0,
+              }
+            );
+          }
         }, 100);
       }
     },
