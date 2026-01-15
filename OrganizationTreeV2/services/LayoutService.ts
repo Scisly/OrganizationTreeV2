@@ -5,6 +5,8 @@ import {
   OrganizationEdge,
   SurveyResponse,
   SelectedSurvey,
+  UserContext,
+  Survey,
 } from "../types/OrganizationTypes";
 
 export class LayoutService {
@@ -24,7 +26,10 @@ export class LayoutService {
     selectedSurvey?: SelectedSurvey,
     userId?: string,
     fullHierarchy?: OrganizationPerson[],
-    allPeople?: OrganizationPerson[]
+    allPeople?: OrganizationPerson[],
+    userContext?: UserContext,
+    allSurveyResponses?: SurveyResponse[],
+    surveys?: Survey[]
   ): { nodes: OrganizationNode[]; edges: OrganizationEdge[] } {
     const dagreGraph = new dagre.graphlib.Graph();
 
@@ -97,6 +102,9 @@ export class LayoutService {
           userId,
           fullHierarchy: fullHierarchy ?? hierarchy,
           allPeople: allPeople ?? hierarchyPeople,
+          userContext,
+          allSurveyResponses,
+          surveys,
         },
       });
     });

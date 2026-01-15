@@ -22,23 +22,27 @@ import {
   tokens,
   Button,
   Text,
-  Card,
-  CardHeader,
-  CardPreview,
   Input,
-  Spinner,
 } from "@fluentui/react-components";
 import { PersonNode } from "./PersonNode";
+import { LoadingState } from "./LoadingState";
+import { SurveyPanel } from "./SurveyPanel";
+import { DescriptionPanel } from "./DescriptionPanel";
 import { OrganizationService } from "../services/OrganizationService";
 import { LayoutService } from "../services/LayoutService";
+import { SurveyAccessService } from "../services/SurveyAccessService";
+import { useDatasetLoading } from "../hooks/useDatasetLoading";
+import { useDebounce } from "../hooks/useDebounce";
 import {
   OrganizationPerson,
   HierarchyFilterOptions,
   SurveyResponse,
   Survey,
   SelectedSurvey,
+  UserContext,
+  SurveyNotificationMap,
 } from "../types/OrganizationTypes";
-import { CommentText16Filled, Document20Regular, Filter20Regular, Organization20Regular, Poll20Regular, TextDescription20Regular, Checkmark16Filled, Checkmark16Regular } from "@fluentui/react-icons";
+import { Filter20Regular, Organization20Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
   container: {
@@ -52,7 +56,7 @@ const useStyles = makeStyles({
   mainContent: {
     display: "flex",
     flexDirection: "column",
-    minWidth: "0", // Prevents flex item from overflowing
+    minWidth: "0",
     height: "100%",
   },
   reactFlowContainer: {
@@ -60,83 +64,6 @@ const useStyles = makeStyles({
     height: "100%",
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusSmall,
-  },
-  surveyPanel: {
-    minWidth: "200px",
-    height: "100%",
-    overflow: "auto",
-    ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: tokens.colorNeutralBackground2,
-  },
-  descriptionPanel: {
-    minWidth: "200px",
-    height: "100%",
-    overflow: "auto",
-    ...shorthands.borderLeft("1px", "solid", tokens.colorNeutralStroke2),
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: tokens.colorNeutralBackground2,
-  },
-  surveyPanelHeader: {
-    ...shorthands.padding("12px"),
-    ...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke2),
-    backgroundColor: tokens.colorNeutralBackground1,
-    display: "flex",
-    alignItems: "center",
-    ...shorthands.gap("8px"),
-  },
-  descriptionPanelHeader: {
-    ...shorthands.padding("12px"),
-    ...shorthands.borderBottom("1px", "solid", tokens.colorNeutralStroke2),
-    backgroundColor: tokens.colorNeutralBackground1,
-    display: "flex",
-    alignItems: "center",
-    ...shorthands.gap("8px"),
-  },
-  surveyList: {
-    flex: "1 1 auto",
-    ...shorthands.padding("8px"),
-    ...shorthands.overflow("auto"),
-    display: "flex",
-    flexDirection: "column",
-    ...shorthands.gap("4px"),
-  },
-  descriptionContent: {
-    flex: "1 1 auto",
-    ...shorthands.padding("12px"),
-    ...shorthands.overflow("auto"),
-    whiteSpace: "pre-wrap",
-    wordWrap: "break-word",
-  },
-  surveyItem: {
-    ...shorthands.padding("8px"),
-    ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
-    borderRadius: tokens.borderRadiusSmall,
-    backgroundColor: tokens.colorNeutralBackground1,
-    cursor: "pointer",
-    ":hover": {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  surveyItemSelected: {
-    backgroundColor: tokens.colorBrandBackground2,
-    ...shorthands.border("1px", "solid", tokens.colorBrandStroke1),
-    ":hover": {
-      backgroundColor: tokens.colorBrandBackground2Hover,
-    },
-  },
-  surveyCardHeader: {
-    position: "relative",
-  },
-  selectedSurveyIcon: {
-    color: tokens.colorBrandForeground1,
-  },
-  surveyHeaderWithIcon: {
-    display: "flex",
-    alignItems: "center",
-    ...shorthands.gap("8px"),
   },
   reactFlowWrapper: {
     width: "100%",
@@ -167,22 +94,6 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
   },
-  emptyState: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    width: "100%",
-    flexDirection: "column",
-    ...shorthands.gap("16px"),
-  },
-  emptyStateIcon: {
-    fontSize: "48px",
-    color: tokens.colorNeutralForeground3,
-  },
-  emptyStateText: {
-    color: tokens.colorNeutralForeground2,
-  },
   searchInput: {
     width: "250px",
   },
@@ -191,12 +102,12 @@ const useStyles = makeStyles({
 // Fixed height constant
 const FIXED_HEIGHT = 768;
 
-// Typy węzłów dostępne w ReactFlow
+// Node types for ReactFlow
 const nodeTypes = {
   person: PersonNode,
 };
 
-// Komponent wewnętrzny z ReactFlow hookami
+// Inner component with ReactFlow hooks
 const ReactFlowContent: React.FC<{
   nodes: Node[];
   edges: Edge[];
@@ -205,8 +116,6 @@ const ReactFlowContent: React.FC<{
   styles: ReturnType<typeof useStyles>;
   userId?: string;
   showOnlyTeam: boolean;
-  allPeople: OrganizationPerson[];
-  hierarchy: OrganizationPerson[];
   toggleTeamFilter: () => void;
   renderFilterInfo: () => React.ReactElement;
   onInit: (instance: ReturnType<typeof useReactFlow>) => void;
@@ -230,48 +139,38 @@ const ReactFlowContent: React.FC<{
 }) => {
   const reactFlowInstance = useReactFlow();
 
-  // Auto centrowanie widoku na zalogowanym użytkowniku
+  // Auto-center view on logged-in user
   React.useEffect(() => {
     if (reactFlowInstance && nodes.length > 0) {
       const timeoutId = setTimeout(() => {
-        // Najpierw sprawdź czy wszystkie węzły mają prawidłowe pozycje
         const nodesWithValidPositions = nodes.filter(
-          node => node.position.x !== undefined && node.position.y !== undefined
+          (node) =>
+            node.position.x !== undefined && node.position.y !== undefined
         );
 
         if (nodesWithValidPositions.length === nodes.length) {
-          // Jeśli mamy primaryRootId (zalogowany użytkownik), wyśrodkuj na nim
           if (primaryRootId) {
             const userNode = reactFlowInstance.getNode(primaryRootId);
             if (userNode) {
               const nodeWidth = userNode.width ?? 253;
               const nodeHeight = userNode.height ?? 161;
 
-              // Wyśrodkuj na użytkowniku z odpowiednim zoomem
               reactFlowInstance.setCenter(
                 userNode.position.x + nodeWidth / 2,
                 userNode.position.y + nodeHeight / 2,
-                {
-                  duration: 500,
-                  zoom: 1.0, // Większy zoom dla lepszej czytelności węzłów
-                }
+                { duration: 500, zoom: 1.0 }
               );
               return;
             }
           }
 
-          // Fallback: jeśli nie ma użytkownika, wyśrodkuj na pierwszym węźle z zoomem 1.0
+          // Fallback: center on first node
           const firstNode = nodes[0];
           if (firstNode) {
-            const nodeWidth = 253;
-            const nodeHeight = 161;
             reactFlowInstance.setCenter(
-              firstNode.position.x + nodeWidth / 2,
-              firstNode.position.y + nodeHeight / 2,
-              {
-                duration: 500,
-                zoom: 1.0,
-              }
+              firstNode.position.x + 253 / 2,
+              firstNode.position.y + 161 / 2,
+              { duration: 500, zoom: 1.0 }
             );
           }
         }
@@ -299,7 +198,7 @@ const ReactFlowContent: React.FC<{
       fitView={false}
       minZoom={0.1}
       maxZoom={2}
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: "100%", height: "100%" }}
     >
       <Background />
 
@@ -319,14 +218,16 @@ const ReactFlowContent: React.FC<{
             </Button>
           )}
         </div>
-        
+
         <div className={styles.panelRow}>
           <Input
             className={styles.searchInput}
             placeholder="Wyszukaj po imieniu i nazwisku..."
             value={searchText}
-            style={{ width: '100%' }}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(event.target.value)}
+            style={{ width: "100%" }}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              handleSearchChange(event.target.value)
+            }
           />
         </div>
       </Panel>
@@ -364,7 +265,6 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   dataSet,
   surveyResponsesDataSet,
   surveysDataSet,
-  projectId,
   userId,
   containerWidth,
   onSurveyClick,
@@ -372,121 +272,71 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   onSurveyChange,
 }) => {
   const styles = useStyles();
-  
-  // Calculate responsive dimensions based on containerWidth
-  const actualContainerWidth = containerWidth ?? 1600; // fallback to default
-  const RESPONSIVE_CONTAINER_WIDTH = actualContainerWidth - 2; // subtract 2px margin
-  const RESPONSIVE_TREE_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.70) - 2;
+
+  // Calculate responsive dimensions
+  const actualContainerWidth = containerWidth ?? 1600;
+  const RESPONSIVE_CONTAINER_WIDTH = actualContainerWidth - 2;
+  const RESPONSIVE_TREE_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.7) - 2;
   const RESPONSIVE_LIST_WIDTH = Math.floor(RESPONSIVE_CONTAINER_WIDTH * 0.15) - 2;
-  const RESPONSIVE_DESC_WIDTH = RESPONSIVE_CONTAINER_WIDTH - RESPONSIVE_TREE_WIDTH - RESPONSIVE_LIST_WIDTH - 2;
-  
+  const RESPONSIVE_DESC_WIDTH =
+    RESPONSIVE_CONTAINER_WIDTH - RESPONSIVE_TREE_WIDTH - RESPONSIVE_LIST_WIDTH - 2;
+
+  // Use the new dataset loading hook
+  const loadingStatus = useDatasetLoading(
+    dataSet,
+    surveysDataSet,
+    surveyResponsesDataSet
+  );
+
+  // Core state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [showOnlyTeam, setShowOnlyTeam] = React.useState(true); // Domyślnie widok zespołu (tylko bezpośredni podwładni)
+  const [showOnlyTeam, setShowOnlyTeam] = React.useState(true);
   const [hierarchy, setHierarchy] = React.useState<OrganizationPerson[]>([]);
-  const [fullHierarchy, setFullHierarchy] = React.useState<
-    OrganizationPerson[]
-  >([]);
+  const [, setFullHierarchy] = React.useState<OrganizationPerson[]>([]);
   const [allPeople, setAllPeople] = React.useState<OrganizationPerson[]>([]);
-  const [surveyResponses, setSurveyResponses] = React.useState<
-    SurveyResponse[]
-  >([]);
+  const [surveyResponses, setSurveyResponses] = React.useState<SurveyResponse[]>([]);
+  const [allSurveyResponses, setAllSurveyResponses] = React.useState<SurveyResponse[]>([]);
   const [surveys, setSurveys] = React.useState<Survey[]>([]);
   const [selectedSurvey, setSelectedSurvey] = React.useState<SelectedSurvey | null>(null);
-  const [isLoadingAllData, setIsLoadingAllData] = React.useState(false);
   const [searchText, setSearchText] = React.useState<string>("");
   const [collapsedNodeIds, setCollapsedNodeIds] = React.useState<string[]>([]);
+
+  // Refs for tracking state
   const collapseInitializedRef = React.useRef(false);
+  const surveysInitializedRef = React.useRef(false);
 
-  // Funkcja do ładowania wszystkich stron danych
-  const loadAllPages = React.useCallback(() => {
-    if (!dataSet?.paging?.hasNextPage) {
-      return; // Wszystkie dane już załadowane
-    }
+  // Debounced search for performance
+  const debouncedSearchText = useDebounce(searchText, 300);
 
-    setIsLoadingAllData(true);
-    try {
-      // Próba załadowania następnej strony
-      if (dataSet.paging.loadNextPage) {
-        dataSet.paging.loadNextPage();
-        // Rekurencyjnie załaduj kolejne strony po krótkiej przerwie
-        setTimeout(() => {
-          loadAllPages();
-        }, 100);
-      }
-    } catch (error) {
-      console.error("Błąd podczas ładowania kolejnej strony:", error);
-    } finally {
-      setIsLoadingAllData(false);
-    }
-  }, [dataSet]);
+  // Callbacks using refs for stability
+  const handleSurveyClickRef = React.useRef(onSurveyClick);
+  const handleResponseClickRef = React.useRef(onResponseClick);
+  handleSurveyClickRef.current = onSurveyClick;
+  handleResponseClickRef.current = onResponseClick;
 
-  // Efekt do ładowania wszystkich danych przy inicjalizacji
-  React.useEffect(() => {
-    if (dataSet?.paging?.hasNextPage && !isLoadingAllData) {
-      loadAllPages();
-    }
-  }, [dataSet?.paging?.hasNextPage, loadAllPages, isLoadingAllData]);
-
-  // Callback dla kliknięcia przycisku ankiety
+  // Survey click handler
   const handleSurveyClick = React.useCallback(
     (personId: string) => {
       if (selectedSurvey?.url) {
         const fullSurveyUrl = `${selectedSurvey.url}&ctx=%7B"personId"%3A"${personId}"%7D`;
-        onSurveyClick(personId, fullSurveyUrl);
+        handleSurveyClickRef.current(personId, fullSurveyUrl);
       }
     },
-    [selectedSurvey?.url, onSurveyClick]
+    [selectedSurvey?.url]
   );
 
-  // Budowanie hierarchii i layoutu
-  const handleResponseClick = React.useCallback(
-    (responseId: string) => {
-      if (onResponseClick) {
-        onResponseClick(responseId);
-      }
-    },
-    [onResponseClick]
-  );
+  // Response click handler
+  const handleResponseClick = React.useCallback((responseId: string) => {
+    handleResponseClickRef.current(responseId);
+  }, []);
 
-  // Handler dla wyszukiwania
+  // Search change handler
   const handleSearchChange = React.useCallback((text: string) => {
     setSearchText(text);
   }, []);
 
-  // Funkcja filtrowania osób po imieniu i nazwisku
-  const filterPeopleByName = React.useCallback((people: OrganizationPerson[], searchTerm: string): OrganizationPerson[] => {
-    if (!searchTerm.trim()) {
-      return people;
-    }
-
-    const searchTermLower = searchTerm.toLowerCase().trim();
-    
-    const filterRecursive = (personList: OrganizationPerson[]): OrganizationPerson[] => {
-      const filtered: OrganizationPerson[] = [];
-      
-      for (const person of personList) {
-        const fullName = `${person.name}`.toLowerCase();
-        const matchesSearch = fullName.includes(searchTermLower);
-        
-        // Filtruj dzieci rekurencyjnie
-        const filteredChildren = person.children ? filterRecursive(person.children) : [];
-        
-        // Dodaj osobę jeśli ona sama pasuje do wyszukiwania lub ma dzieci które pasują
-        if (matchesSearch || filteredChildren.length > 0) {
-          filtered.push({
-            ...person,
-            children: filteredChildren,
-          });
-        }
-      }
-      
-      return filtered;
-    };
-    
-    return filterRecursive(people);
-  }, []);
-
+  // Toggle collapse handler
   const handleToggleCollapse = React.useCallback((personId: string) => {
     setCollapsedNodeIds((previous) => {
       if (previous.includes(personId)) {
@@ -496,57 +346,155 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     });
   }, []);
 
+  // Filter people by name (recursive)
+  const filterPeopleByName = React.useCallback(
+    (people: OrganizationPerson[], searchTerm: string): OrganizationPerson[] => {
+      if (!searchTerm.trim()) {
+        return people;
+      }
+
+      const searchTermLower = searchTerm.toLowerCase().trim();
+
+      const filterRecursive = (
+        personList: OrganizationPerson[]
+      ): OrganizationPerson[] => {
+        const filtered: OrganizationPerson[] = [];
+
+        for (const person of personList) {
+          const fullName = `${person.name}`.toLowerCase();
+          const matchesSearch = fullName.includes(searchTermLower);
+          const filteredChildren = person.children
+            ? filterRecursive(person.children)
+            : [];
+
+          if (matchesSearch || filteredChildren.length > 0) {
+            filtered.push({
+              ...person,
+              children: filteredChildren,
+            });
+          }
+        }
+
+        return filtered;
+      };
+
+      return filterRecursive(people);
+    },
+    []
+  );
+
+  // Toggle team filter
+  const toggleTeamFilter = React.useCallback(() => {
+    setShowOnlyTeam((prev) => !prev);
+  }, []);
+
+  // ============================================
+  // EFFECT 1: Load and process surveys
+  // ============================================
   React.useEffect(() => {
-    if (!hierarchy.length) {
-      setCollapsedNodeIds([]);
-      collapseInitializedRef.current = false;
+    if (!surveysDataSet?.records || surveysDataSet.loading) {
       return;
     }
 
-    const allIds: string[] = [];
-    const collectIds = (people: OrganizationPerson[]) => {
-      people.forEach((person) => {
-        allIds.push(person.id);
-        if (person.children && person.children.length > 0) {
-          collectIds(person.children);
-        }
-      });
-    };
+    const loadedSurveys: Survey[] = [];
 
-    collectIds(hierarchy);
+    for (const recordId of surveysDataSet.sortedRecordIds || []) {
+      const record = surveysDataSet.records[recordId];
+      const survey: Survey = {
+        msfp_surveyid: record.getValue("msfp_surveyid") as string,
+        msfp_name: record.getValue("msfp_name") as string,
+        msfp_surveyurl: record.getValue("msfp_surveyurl") as string,
+        msfp_description: record.getValue("msfp_description") as string,
+      };
+      loadedSurveys.push(survey);
+    }
 
-    const validIds = new Set(allIds);
-    const rootIds = hierarchy.map((person) => person.id);
-
-    setCollapsedNodeIds((previous) => {
-      const sanitized = previous.filter((id) => validIds.has(id));
-
-      if (
-        !collapseInitializedRef.current &&
-        searchText.trim() === "" &&
-        hierarchy.length > 0
-      ) {
-        const defaultCollapsed = allIds.filter((id) => !rootIds.includes(id));
-        collapseInitializedRef.current = true;
-        return defaultCollapsed;
-      }
-
-      if (sanitized.length !== previous.length) {
-        return sanitized;
-      }
-
-      return previous;
+    // Sort surveys alphabetically
+    const sortedSurveys = loadedSurveys.sort((a, b) => {
+      const nameA = a.msfp_name?.toLowerCase() || "";
+      const nameB = b.msfp_name?.toLowerCase() || "";
+      return nameA.localeCompare(nameB, "pl", { sensitivity: "accent" });
     });
-  }, [hierarchy, searchText]);
 
-  const buildLayout = React.useCallback(() => {
-    const {
-      hierarchy: fullOrganizationHierarchy,
-      allPeople: allPeopleData,
-    } = OrganizationService.buildHierarchyWithPeople(dataSet);
+    setSurveys(sortedSurveys);
+
+    // Auto-select first survey only once
+    if (sortedSurveys.length > 0 && !surveysInitializedRef.current) {
+      surveysInitializedRef.current = true;
+      const firstSurvey = sortedSurveys[0];
+      setSelectedSurvey({
+        id: firstSurvey.msfp_surveyid,
+        name: firstSurvey.msfp_name,
+        url: firstSurvey.msfp_surveyurl ?? "",
+        description: firstSurvey.msfp_description ?? "",
+      });
+
+      if (onSurveyChange) {
+        onSurveyChange();
+      }
+    }
+  }, [surveysDataSet?.sortedRecordIds?.length, surveysDataSet?.loading, onSurveyChange]);
+
+  // ============================================
+  // EFFECT 2: Load survey responses (for selected survey)
+  // ============================================
+  React.useEffect(() => {
+    if (
+      !surveyResponsesDataSet?.sortedRecordIds?.length ||
+      surveyResponsesDataSet.loading ||
+      !selectedSurvey?.id
+    ) {
+      setSurveyResponses([]);
+      return;
+    }
+
+    const responses = OrganizationService.processSurveyResponses(
+      surveyResponsesDataSet,
+      selectedSurvey.id
+    );
+    setSurveyResponses(responses);
+  }, [
+    surveyResponsesDataSet?.sortedRecordIds?.length,
+    surveyResponsesDataSet?.loading,
+    selectedSurvey?.id,
+  ]);
+
+  // ============================================
+  // EFFECT 2.5: Load ALL survey responses (for chained logic)
+  // ============================================
+  React.useEffect(() => {
+    if (
+      !surveyResponsesDataSet?.sortedRecordIds?.length ||
+      surveyResponsesDataSet.loading
+    ) {
+      setAllSurveyResponses([]);
+      return;
+    }
+
+    const allResponses = OrganizationService.processSurveyResponsesAll(
+      surveyResponsesDataSet
+    );
+    setAllSurveyResponses(allResponses);
+  }, [
+    surveyResponsesDataSet?.sortedRecordIds?.length,
+    surveyResponsesDataSet?.loading,
+  ]);
+
+  // ============================================
+  // EFFECT 3: Build hierarchy and layout
+  // ============================================
+  React.useEffect(() => {
+    if (!dataSet?.sortedRecordIds?.length || dataSet.loading) {
+      return;
+    }
+
+    // Build full hierarchy
+    const { hierarchy: fullOrganizationHierarchy, allPeople: allPeopleData } =
+      OrganizationService.buildHierarchyWithPeople(dataSet);
     setFullHierarchy(fullOrganizationHierarchy);
     setAllPeople(allPeopleData);
 
+    // Build filtered hierarchy
     const filterOptions: HierarchyFilterOptions = {
       currentUserId: userId,
       showOnlyTeam,
@@ -555,33 +503,34 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     const { hierarchy: organizationHierarchy } =
       OrganizationService.buildHierarchyWithPeople(dataSet, filterOptions);
 
+    // Apply search filter
     const filteredHierarchy = filterPeopleByName(
       organizationHierarchy,
-      searchText
+      debouncedSearchText
     );
     setHierarchy(filteredHierarchy);
 
+    // Collect all IDs for collapse management
     const filteredHierarchyIds: string[] = [];
     const collectIds = (people: OrganizationPerson[]) => {
       people.forEach((person) => {
         filteredHierarchyIds.push(person.id);
-        if (person.children && person.children.length > 0) {
+        if (person.children?.length) {
           collectIds(person.children);
         }
       });
     };
-
     collectIds(filteredHierarchy);
 
     const rootIds = filteredHierarchy.map((person) => person.id);
 
+    // Initialize collapse state
     let effectiveCollapsedIds = collapsedNodeIds;
-
     if (
       !collapseInitializedRef.current &&
       collapsedNodeIds.length === 0 &&
       filteredHierarchy.length > 0 &&
-      searchText.trim() === ""
+      debouncedSearchText.trim() === ""
     ) {
       const defaultCollapsed = filteredHierarchyIds.filter(
         (id) => !rootIds.includes(id)
@@ -593,6 +542,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
     const collapsedSet = new Set(effectiveCollapsedIds);
 
+    // Apply collapse to hierarchy
     const applyCollapseToHierarchy = (
       people: OrganizationPerson[]
     ): OrganizationPerson[] =>
@@ -611,6 +561,12 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
     const visibleHierarchy = applyCollapseToHierarchy(filteredHierarchy);
 
+    // Build user context for permissions
+    const userContext: UserContext | undefined = userId
+      ? SurveyAccessService.buildUserContext(userId, allPeopleData)
+      : undefined;
+
+    // Create layout
     const { nodes: layoutNodes, edges: layoutEdges } =
       LayoutService.createTreeLayout(
         visibleHierarchy,
@@ -620,21 +576,25 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         selectedSurvey ?? undefined,
         userId,
         fullOrganizationHierarchy,
-        allPeopleData
+        allPeopleData,
+        userContext,
+        allSurveyResponses,
+        surveys
       );
 
+    // Mark parents with children
     const parentsWithChildren = new Set<string>();
     const markParents = (people: OrganizationPerson[]) => {
       people.forEach((person) => {
-        if (person.children && person.children.length > 0) {
+        if (person.children?.length) {
           parentsWithChildren.add(person.id);
           markParents(person.children);
         }
       });
     };
-
     markParents(fullOrganizationHierarchy);
 
+    // Add metadata to nodes
     const nodeIdSet = new Set<string>();
     const nodesWithMetadata = layoutNodes.map((node) => {
       nodeIdSet.add(node.id);
@@ -652,6 +612,7 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       };
     });
 
+    // Filter edges to only include valid connections
     const filteredEdges = layoutEdges.filter(
       (edge) => nodeIdSet.has(edge.source) && nodeIdSet.has(edge.target)
     );
@@ -659,143 +620,85 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     setNodes(nodesWithMetadata);
     setEdges(filteredEdges);
   }, [
-    dataSet,
-    selectedSurvey,
+    dataSet?.sortedRecordIds?.length,
+    dataSet?.loading,
     userId,
     showOnlyTeam,
+    debouncedSearchText,
     surveyResponses,
-    searchText,
+    selectedSurvey,
+    collapsedNodeIds,
+    filterPeopleByName,
     handleSurveyClick,
     handleResponseClick,
-    filterPeopleByName,
+    handleToggleCollapse,
     setNodes,
     setEdges,
-    collapsedNodeIds,
-    handleToggleCollapse,
+    allSurveyResponses,
+    surveys,
   ]);
 
-  // Efekt do odbudowy layoutu przy zmianie danych
+  // ============================================
+  // EFFECT 4: Reset collapse state on hierarchy change
+  // ============================================
   React.useEffect(() => {
-    if (
-      dataSet?.sortedRecordIds?.length &&
-      dataSet.sortedRecordIds.length > 0
-    ) {
-      buildLayout();
+    if (!hierarchy.length) {
+      setCollapsedNodeIds([]);
+      collapseInitializedRef.current = false;
+      return;
     }
-  }, [buildLayout]);
 
-  // Efekt do ładowania odpowiedzi z ankiet
-  React.useEffect(() => {
-    if (
-      surveyResponsesDataSet?.sortedRecordIds?.length &&
-      surveyResponsesDataSet.sortedRecordIds.length > 0 &&
-      selectedSurvey?.id
-    ) {
-      const responses = OrganizationService.processSurveyResponses(
-        surveyResponsesDataSet,
-        selectedSurvey.id
-      );
-      setSurveyResponses(responses);
-    } else {
-      setSurveyResponses([]);
-    }
-  }, [surveyResponsesDataSet, selectedSurvey?.id]);
-
-  // Ładowanie listy ankiet
-  React.useEffect(() => {
-    if (surveysDataSet?.records) {
-      const loadedSurveys: Survey[] = [];
-      
-      for (const recordId of surveysDataSet.sortedRecordIds || []) {
-        const record = surveysDataSet.records[recordId];
-        const survey: Survey = {
-          msfp_surveyid: record.getValue("msfp_surveyid") as string,
-          msfp_name: record.getValue("msfp_name") as string,
-          msfp_surveyurl: record.getValue("msfp_surveyurl") as string,
-          msfp_description: record.getValue("msfp_description") as string,
-        };
-        loadedSurveys.push(survey);
-      }
-      
-      // Sortowanie ankiet alfabetycznie według nazwy
-      const sortedSurveys = loadedSurveys.sort((a, b) => {
-        const nameA = a.msfp_name?.toLowerCase() || '';
-        const nameB = b.msfp_name?.toLowerCase() || '';
-        return nameA.localeCompare(nameB, 'pl', { sensitivity: 'accent' });
-      });
-      
-      setSurveys(sortedSurveys);
-      
-      // Automatycznie wybierz pierwszą ankietę jeśli nie ma wybranej
-      if (loadedSurveys.length > 0 && !selectedSurvey) {
-        const firstSurvey = {
-          id: loadedSurveys[0].msfp_surveyid,
-          name: loadedSurveys[0].msfp_name,
-          url: loadedSurveys[0].msfp_surveyurl ?? "",
-          description: loadedSurveys[0].msfp_description ?? "",
-        };
-        setSelectedSurvey(firstSurvey);
-        
-        // Wywołaj callback przy automatycznym wyborze
-        if (onSurveyChange) {
-          onSurveyChange();
+    const allIds: string[] = [];
+    const collectIds = (people: OrganizationPerson[]) => {
+      people.forEach((person) => {
+        allIds.push(person.id);
+        if (person.children?.length) {
+          collectIds(person.children);
         }
+      });
+    };
+    collectIds(hierarchy);
+
+    const validIds = new Set(allIds);
+
+    setCollapsedNodeIds((previous) => {
+      const sanitized = previous.filter((id) => validIds.has(id));
+      if (sanitized.length !== previous.length) {
+        return sanitized;
       }
-    } else {
-      setSurveys([]);
-      setSelectedSurvey(null);
-    }
-  }, [surveysDataSet, selectedSurvey]);
+      return previous;
+    });
+  }, [hierarchy]);
 
-  // Toggle filtrowania zespołu
-  const toggleTeamFilter = React.useCallback(() => {
-    setShowOnlyTeam(!showOnlyTeam);
-  }, [showOnlyTeam]);
-
-  // Znajdź ID węzła obecnego użytkownika do centrowania widoku
+  // Find primary root ID for centering
   const primaryRootId = React.useMemo(() => {
     const currentUser = OrganizationService.findUserByUserId(userId ?? "", allPeople);
     return currentUser?.id ?? hierarchy[0]?.id;
   }, [userId, allPeople, hierarchy]);
 
-  // Handler dla inicjalizacji ReactFlow
+  // ReactFlow init handler
   const handleReactFlowInit = React.useCallback(
     (instance: ReturnType<typeof useReactFlow>) => {
-      console.log("ReactFlow initialized");
-
       if (nodes.length > 0) {
         setTimeout(() => {
-          // Jeśli mamy primaryRootId (zalogowany użytkownik), wyśrodkuj na nim
           if (primaryRootId) {
             const userNode = instance.getNode(primaryRootId);
             if (userNode) {
-              const nodeWidth = userNode.width ?? 253;
-              const nodeHeight = userNode.height ?? 161;
-
               instance.setCenter(
-                userNode.position.x + nodeWidth / 2,
-                userNode.position.y + nodeHeight / 2,
-                {
-                  duration: 300,
-                  zoom: 1.0,
-                }
+                userNode.position.x + (userNode.width ?? 253) / 2,
+                userNode.position.y + (userNode.height ?? 161) / 2,
+                { duration: 300, zoom: 1.0 }
               );
               return;
             }
           }
 
-          // Fallback: wyśrodkuj na pierwszym węźle z zoomem 1.0
           const firstNode = instance.getNodes()[0];
           if (firstNode) {
-            const nodeWidth = 253;
-            const nodeHeight = 161;
             instance.setCenter(
-              firstNode.position.x + nodeWidth / 2,
-              firstNode.position.y + nodeHeight / 2,
-              {
-                duration: 300,
-                zoom: 1.0,
-              }
+              firstNode.position.x + 253 / 2,
+              firstNode.position.y + 161 / 2,
+              { duration: 300, zoom: 1.0 }
             );
           }
         }, 100);
@@ -804,46 +707,79 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
     [nodes.length, primaryRootId]
   );
 
-  // Obsługa wyboru ankiety
-  const handleSurveySelect = React.useCallback((survey: Survey) => {
-    const newSelectedSurvey = {
-      id: survey.msfp_surveyid,
-      name: survey.msfp_name,
-      url: survey.msfp_surveyurl ?? "",
-      description: survey.msfp_description ?? "",
-    };
-    setSelectedSurvey(newSelectedSurvey);
-    
-    // Wywołaj callback do wymuszenia odświeżenia widoku
-    if (onSurveyChange) {
-      onSurveyChange();
-    }
-  }, [onSurveyChange]);
+  // Survey selection handler
+  const handleSurveySelect = React.useCallback(
+    (survey: Survey) => {
+      setSelectedSurvey({
+        id: survey.msfp_surveyid,
+        name: survey.msfp_name,
+        url: survey.msfp_surveyurl ?? "",
+        description: survey.msfp_description ?? "",
+      });
 
-  // Renderowanie informacji o filtrze
-  const renderFilterInfo = () => {
+      if (onSurveyChange) {
+        onSurveyChange();
+      }
+    },
+    [onSurveyChange]
+  );
+
+  // ============================================
+  // Calculate notification counts for surveys (only in "My Team" view)
+  // ============================================
+  const surveyNotifications: SurveyNotificationMap = React.useMemo(() => {
+    const notificationMap = new Map<string, number>();
+
+    // Only calculate for "My Team" view with valid user context
+    if (!showOnlyTeam || !userId || surveys.length === 0 || allPeople.length === 0) {
+      return notificationMap;
+    }
+
+    // Build user context for calculations
+    const userContext = SurveyAccessService.buildUserContext(userId, allPeople);
+    if (!userContext.userPersonId || userContext.directSubordinateIds.length === 0) {
+      return notificationMap;
+    }
+
+    // Calculate pending tasks for each survey
+    for (const survey of surveys) {
+      const pendingCount = SurveyAccessService.calculatePendingTasks(
+        survey,
+        userContext,
+        allPeople,
+        allSurveyResponses,
+        surveys
+      );
+      if (pendingCount > 0) {
+        notificationMap.set(survey.msfp_surveyid, pendingCount);
+      }
+    }
+
+    return notificationMap;
+  }, [showOnlyTeam, userId, surveys, allPeople, allSurveyResponses]);
+
+  // Render filter info
+  const renderFilterInfo = React.useCallback(() => {
     const totalFilteredNodes = nodes.length;
     const searchInfo = searchText.trim()
       ? ` (znaleziono: ${totalFilteredNodes})`
-      : '';
+      : "";
 
     if (userId) {
       if (showOnlyTeam) {
-        // Znajdź użytkownika po ag_userid z obsługą różnych formatów GUID
         const currentUser = OrganizationService.findUserByUserId(userId, allPeople);
-
         return (
           <Text className={styles.filterInfo}>
-            Widok zespołu: {currentUser?.name ?? "Nieznany użytkownik"}{searchInfo}
-          </Text>
-        );
-      } else {
-        return (
-          <Text className={styles.filterInfo}>
-            Pełna hierarchia organizacyjna{searchInfo}
+            Widok zespołu: {currentUser?.name ?? "Nieznany użytkownik"}
+            {searchInfo}
           </Text>
         );
       }
+      return (
+        <Text className={styles.filterInfo}>
+          Pełna hierarchia organizacyjna{searchInfo}
+        </Text>
+      );
     }
 
     return (
@@ -851,72 +787,56 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
         Hierarchia organizacyjna (brak identyfikatora użytkownika){searchInfo}
       </Text>
     );
-  };
+  }, [nodes.length, searchText, userId, showOnlyTeam, allPeople, styles.filterInfo]);
 
-  const hasRecords = (dataSet?.sortedRecordIds?.length ?? 0) > 0;
-  const isDatasetPending = Boolean(dataSet?.loading) || (!hasRecords && Boolean(dataSet?.paging?.hasNextPage));
+  // ============================================
+  // RENDER: Loading and empty states
+  // ============================================
+  const loadingStateElement = (
+    <LoadingState
+      width={RESPONSIVE_CONTAINER_WIDTH}
+      height={FIXED_HEIGHT}
+      isLoading={loadingStatus.isInitialLoading || (dataSet?.loading ?? false)}
+      isEmpty={!loadingStatus.hasOrganizationData && !dataSet?.loading}
+      error={loadingStatus.error}
+    />
+  );
 
-  if (!hasRecords) {
-    if (isDatasetPending) {
-      return (
-        <FluentProvider theme={webLightTheme}>
-          <div
-            className={styles.container}
-            style={{
-              width: `${RESPONSIVE_CONTAINER_WIDTH}px`,
-              height: `768px`,
-            }}
-          >
-            <div className={styles.emptyState}>
-              <Spinner size="medium" label="Ładowanie danych organizacyjnych..." />
-            </div>
-          </div>
-        </FluentProvider>
-      );
-    }
-
-    return (
-      <FluentProvider theme={webLightTheme}>
-        <div 
-          className={styles.container}
-          style={{
-            width: `${RESPONSIVE_CONTAINER_WIDTH}px`,
-            height: `768px`,
-          }}
-        >
-          <div className={styles.emptyState}>
-            <Organization20Regular className={styles.emptyStateIcon} />
-            <Text className={styles.emptyStateText}>
-              Brak danych organizacyjnych do wyświetlenia
-            </Text>
-          </div>
-        </div>
-      </FluentProvider>
-    );
+  // Show loading state if applicable
+  if (loadingStatus.isInitialLoading || (dataSet?.loading && !loadingStatus.hasOrganizationData)) {
+    return loadingStateElement;
   }
 
+  // Show empty state if no data
+  if (!loadingStatus.hasOrganizationData) {
+    return loadingStateElement;
+  }
+
+  // ============================================
+  // RENDER: Main content
+  // ============================================
   return (
     <FluentProvider theme={webLightTheme}>
-      <div 
+      <div
         className={styles.container}
         style={{
           width: `${RESPONSIVE_CONTAINER_WIDTH}px`,
-          height: `768px`,
+          height: `${FIXED_HEIGHT}px`,
         }}
       >
-        {/* Główna kolumna - drzewo organizacyjne (70%) */}
-        <div 
+        {/* Main column - organization tree (70%) */}
+        <div
           className={styles.mainContent}
           style={{
             width: `${RESPONSIVE_TREE_WIDTH}px`,
-            height: `768px`,
+            height: `${FIXED_HEIGHT}px`,
           }}
         >
-          <div 
+          <div
             className={styles.reactFlowContainer}
             style={{
               width: `${RESPONSIVE_TREE_WIDTH}px`,
-              height: `768px`, // Przywrócona pełna wysokość
+              height: `${FIXED_HEIGHT}px`,
             }}
           >
             <div className={styles.reactFlowWrapper}>
@@ -929,8 +849,6 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                   styles={styles}
                   userId={userId}
                   showOnlyTeam={showOnlyTeam}
-                  allPeople={allPeople}
-                  hierarchy={hierarchy}
                   toggleTeamFilter={toggleTeamFilter}
                   renderFilterInfo={renderFilterInfo}
                   onInit={handleReactFlowInit}
@@ -942,77 +860,23 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
             </div>
           </div>
         </div>
-        
-        {/* Kolumna ankiet (15%) */}
-        <div 
-          className={styles.surveyPanel}
-          style={{
-            width: `${RESPONSIVE_LIST_WIDTH}px`,
-            height: `768px`,
-          }}
-        >
-          <div className={styles.surveyPanelHeader}>
-            <Poll20Regular />
-            <Text weight="semibold">Ankiety ({surveys.length})</Text>
-          </div>
-          <div className={styles.surveyList}>
-            {surveys.length === 0 ? (
-              <Text>Brak dostępnych ankiet</Text>
-            ) : (
-              surveys.map((survey) => {
-                const isSelected = selectedSurvey?.id === survey.msfp_surveyid;
-                return (
-                  <Card
-                    key={survey.msfp_surveyid}
-                    className={`${styles.surveyItem} ${
-                      isSelected ? styles.surveyItemSelected : ""
-                    }`}
-                    onClick={() => handleSurveySelect(survey)}
-                    appearance="subtle"
-                  >
-                    <div className={styles.surveyCardHeader}>
-                      <CardHeader
-                        header={
-                          <div className={styles.surveyHeaderWithIcon}>
-                            {isSelected && (
-                              <Checkmark16Regular className={styles.selectedSurveyIcon} />
-                            )}
-                            <Text weight={isSelected ? "bold" : "medium"}>
-                              {survey.msfp_name}
-                            </Text>
-                          </div>
-                        }
-                      />
-                    </div>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        </div>
 
-        {/* Nowa kolumna - opis ankiety (15%) */}
-        <div 
-          className={styles.descriptionPanel}
-          style={{
-            width: `${RESPONSIVE_DESC_WIDTH}px`,
-            height: `768px`,
-          }}
-        >
-          <div className={styles.descriptionPanelHeader}>
-            <TextDescription20Regular />
-            <Text weight="semibold">Opis ankiety</Text>
-          </div>
-          <div className={styles.descriptionContent}>
-            {selectedSurvey?.description ? (
-              <Text weight="bold">{selectedSurvey.description}</Text>
-            ) : (
-              <Text style={{ color: tokens.colorNeutralForeground3 }}>
-                Brak opisu dla wybranej ankiety
-              </Text>
-            )}
-          </div>
-        </div>
+        {/* Survey panel (15%) */}
+        <SurveyPanel
+          surveys={surveys}
+          selectedSurvey={selectedSurvey}
+          onSurveySelect={handleSurveySelect}
+          width={RESPONSIVE_LIST_WIDTH}
+          height={FIXED_HEIGHT}
+          notificationCounts={surveyNotifications}
+        />
+
+        {/* Description panel (15%) */}
+        <DescriptionPanel
+          description={selectedSurvey?.description}
+          width={RESPONSIVE_DESC_WIDTH}
+          height={FIXED_HEIGHT}
+        />
       </div>
     </FluentProvider>
   );

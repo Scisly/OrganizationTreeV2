@@ -16,19 +16,13 @@ export class OrganizationService {
   ): { hierarchy: OrganizationPerson[]; allPeople: OrganizationPerson[] } {
     const people: OrganizationPerson[] = [];
 
+    // Early return if dataset is not ready - no side effects, just return empty
     if (!dataSet || dataSet.loading) {
       return { hierarchy: [], allPeople: [] };
     }
 
     if (!dataSet.sortedRecordIds || dataSet.sortedRecordIds.length === 0) {
-      if (dataSet.paging?.hasNextPage && dataSet.paging.loadNextPage) {
-        void dataSet.paging.loadNextPage();
-      }
       return { hierarchy: [], allPeople: [] };
-    }
-
-    if (!dataSet.loading && dataSet.paging?.hasNextPage && dataSet.paging.loadNextPage) {
-      void dataSet.paging.loadNextPage();
     }
 
     // Konwersja danych z DataSet
@@ -79,6 +73,16 @@ export class OrganizationService {
     filterOptions?: HierarchyFilterOptions
   ): OrganizationPerson[] {
     return this.buildHierarchyWithPeople(dataSet, filterOptions).hierarchy;
+  }
+
+  /**
+   * Sprawdza czy email należy do pracownika "blue collar"
+   * Wzorzec: cyfry + @assaabloy.com (np. 123456@assaabloy.com)
+   */
+  public static isBlueCollarEmail(email?: string): boolean {
+    if (!email) return false;
+    const blueCollarPattern = /^\d+@assaabloy\.com$/i;
+    return blueCollarPattern.test(email.trim());
   }
 
   /**
@@ -491,6 +495,36 @@ export class OrganizationService {
       if (responseRecord.surveyId === surveyId) {
         responses.push(responseRecord);
       }
+    });
+
+    return responses;
+  }
+
+  /**
+   * Przetwarza WSZYSTKIE odpowiedzi z ankiet z datasetu (bez filtrowania po surveyId)
+   * Używane do logiki łańcuchowej etapów
+   */
+  public static processSurveyResponsesAll(
+    dataSet: ComponentFramework.PropertyTypes.DataSet
+  ): SurveyResponse[] {
+    const responses: SurveyResponse[] = [];
+
+    if (!dataSet.sortedRecordIds || dataSet.sortedRecordIds.length === 0) {
+      return responses;
+    }
+
+    dataSet.sortedRecordIds.forEach((recordId) => {
+      const record = dataSet.records[recordId];
+
+      const responseRecord: SurveyResponse = {
+        responseId: record.getValue("responseId") as string,
+        surveyId: record.getValue("survey_id") as string,
+        personId: record.getValue("personId") as string,
+        responseUrl: (record.getValue("responseUrl") as string) || undefined,
+        responseDate: (record.getValue("responseDate") as Date) || undefined,
+      };
+
+      responses.push(responseRecord);
     });
 
     return responses;
