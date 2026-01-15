@@ -11,7 +11,6 @@
 
 import {
   SurveyStage,
-  SurveyAccessLevel,
   SurveyAccessResult,
   UserContext,
   OrganizationPerson,
