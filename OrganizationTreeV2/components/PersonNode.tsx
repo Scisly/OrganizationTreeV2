@@ -17,8 +17,16 @@ import {
   ChevronDown20Regular,
   ChevronRight20Regular,
 } from "@fluentui/react-icons";
-import { OrganizationPerson, SurveyResponse, SelectedSurvey } from "../types/OrganizationTypes";
+import {
+  OrganizationPerson,
+  SurveyResponse,
+  SelectedSurvey,
+  UserContext,
+  SurveyAccessResult,
+  Survey,
+} from "../types/OrganizationTypes";
 import { OrganizationService } from "../services/OrganizationService";
+import { SurveyAccessService } from "../services/SurveyAccessService";
 import { Glow, GlowCapture } from "@codaworks/react-glow";
 
 const useStyles = makeStyles({
@@ -138,6 +146,11 @@ export interface PersonNodeProps {
     onToggleCollapse?: (personId: string) => void;
     isCollapsed?: boolean;
     hasChildren?: boolean;
+    // Nowe pola dla systemu uprawnień
+    userContext?: UserContext;
+    // Nowe pola dla logiki łańcuchowej
+    allSurveyResponses?: SurveyResponse[];
+    surveys?: Survey[];
   };
 }
 
@@ -156,6 +169,9 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
     onToggleCollapse,
     isCollapsed,
     hasChildren,
+    userContext,
+    allSurveyResponses,
+    surveys,
   } = data;
 
   const handleSurveyClick = (event: React.MouseEvent) => {
@@ -218,44 +234,63 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
     }
   };
 
-  // Sprawdź czy pokazać przycisk ankiety
-  const shouldShowSurveyButton =
-    showSurveyButton ??
-    OrganizationService.isPersonInCurrentUserTeam(
-      fullHierarchy,
-      person.id,
-      userId,
-      allPeople
-    );
-
   // Sprawdź czy istnieje odpowiedź dla tej osoby - priorytet responseId, fallback responseUrl
-  const hasResponse = surveyResponse?.responseId ?? surveyResponse?.responseUrl;
+  const hasResponse = !!(surveyResponse?.responseId ?? surveyResponse?.responseUrl);
 
-  // Sprawdź czy pokazać wskazówkę ankiety (tylko dla zespołu aktualnego użytkownika)
-  const shouldShowSurveyIndicator = shouldShowSurveyButton;
+  // ============================================
+  // NOWY SYSTEM UPRAWNIEŃ OPARTY NA RELACJI MANAGER-PODWŁADNY
+  // Z OBSŁUGĄ ŁAŃCUCHOWĄ ETAPÓW (CHAINED SURVEYS)
+  // ============================================
 
-  // Sprawdź czy osoba ma podwładnych (jest przełożonym)
-  const personHasSubordinates = allPeople
-    ? OrganizationService.hasSubordinates(person.id, allPeople)
-    : false;
+  // Wykryj etap ankiety na podstawie nazwy
+  const surveyStage = selectedSurvey
+    ? SurveyAccessService.detectSurveyStage(selectedSurvey.name)
+    : null;
 
-  // Sprawdź czy ankieta wymaga bycia przełożonym (Stage 2 lub Stage 3)
-  const isSupervisorOnlySurvey =
-    selectedSurvey &&
-    (selectedSurvey.name.includes("Stage 2") ||
-      selectedSurvey.name.includes("Stage 3"));
+  // Oblicz poziom dostępu używając nowego serwisu uprawnień
+  const accessResult: SurveyAccessResult = React.useMemo(() => {
+    if (!userContext || !selectedSurvey) {
+      // Fallback do starego zachowania jeśli brak kontekstu użytkownika
+      const fallbackHasAccess = showSurveyButton ?? OrganizationService.isPersonInCurrentUserTeam(
+        fullHierarchy,
+        person.id,
+        userId,
+        allPeople
+      );
+      return {
+        accessLevel: fallbackHasAccess ? (hasResponse ? "view" : "edit") : "none",
+        reason: fallbackHasAccess
+          ? (hasResponse ? "Kliknij aby wyświetlić odpowiedzi" : "Kliknij aby otworzyć ankietę")
+          : "Brak uprawnień",
+      } as SurveyAccessResult;
+    }
 
-  // Wyłącz przycisk ankiety jeśli:
-  // - Ankieta to Stage 2/3 AND osoba nie ma podwładnych
-  const isSurveyButtonDisabled =
-    isSupervisorOnlySurvey && !personHasSubordinates;
+    return SurveyAccessService.getSurveyAccessLevel(
+      surveyStage,
+      person.id,
+      userContext,
+      hasResponse,
+      allSurveyResponses,
+      surveys,
+      person.email
+    );
+  }, [userContext, selectedSurvey, surveyStage, person.id, person.email, hasResponse, showSurveyButton, fullHierarchy, userId, allPeople, allSurveyResponses, surveys]);
 
-  // Tooltip wyjaśniający dlaczego przycisk jest wyłączony
-  const surveyButtonTooltip = isSurveyButtonDisabled
-    ? "Ankieta dostępna tylko dla przełożonych"
-    : hasResponse
-    ? "Kliknij aby wyświetlić odpowiedzi"
-    : "Kliknij aby otworzyć ankietę";
+  // Określ czy pokazać przycisk ankiety
+  // Pokaż przycisk jeśli mamy dostęp LUB jeśli jest zablokowany przez logikę łańcuchową
+  const shouldShowSurveyButton = accessResult.accessLevel !== "none" || accessResult.isChainBlocked === true;
+
+  // Określ czy przycisk jest w trybie tylko do odczytu
+  const isReadOnly = accessResult.accessLevel === "view";
+
+  // Określ czy przycisk jest zablokowany przez logikę łańcuchową
+  const isChainBlocked = accessResult.isChainBlocked === true;
+
+  // Sprawdź czy pokazać wskazówkę ankiety (tylko dla widocznych przycisków z dostępem)
+  const shouldShowSurveyIndicator = accessResult.accessLevel !== "none";
+
+  // Tooltip wyjaśniający stan przycisku
+  const surveyButtonTooltip = accessResult.disabledReason ?? accessResult.reason;
 
   return (
     <>
@@ -340,26 +375,39 @@ export const PersonNode: React.FC<PersonNodeProps> = ({ data }) => {
 
           {shouldShowSurveyButton && (
             <>
-              {hasResponse ? (
+              {isChainBlocked ? (
+                // Przycisk zablokowany przez logikę łańcuchową - disabled z tooltipem
+                <Button
+                  className={styles.surveyButton}
+                  appearance="secondary"
+                  size="small"
+                  icon={<QuestionCircle20Regular />}
+                  disabled={true}
+                  title={surveyButtonTooltip}
+                >
+                  Otwórz ankietę
+                </Button>
+              ) : isReadOnly || hasResponse ? (
+                // Tryb podglądu (read-only) - użytkownik może tylko przeglądać
                 <Button
                   className={styles.surveyButton}
                   appearance="secondary"
                   size="small"
                   icon={<DocumentSearch20Regular />}
                   onClick={handleResponseClick}
-                  disabled={isSurveyButtonDisabled}
+                  disabled={!hasResponse}
                   title={surveyButtonTooltip}
                 >
-                  Wyświetl odpowiedzi
+                  {hasResponse ? "Wyświetl odpowiedzi" : "Brak odpowiedzi"}
                 </Button>
               ) : (
+                // Tryb edycji - użytkownik może wypełnić ankietę
                 <Button
                   className={styles.surveyButton}
                   appearance="primary"
                   size="small"
                   icon={<QuestionCircle20Regular />}
                   onClick={handleSurveyClick}
-                  disabled={isSurveyButtonDisabled}
                   title={surveyButtonTooltip}
                 >
                   Otwórz ankietę
