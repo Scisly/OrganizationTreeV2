@@ -46,7 +46,7 @@ export class SurveyAccessService {
       // Clear oldest entries (simple approach: clear half the cache)
       const entries = Array.from(this.guidCache.entries());
       this.guidCache.clear();
-      entries.slice(entries.length / 2).forEach(([k, v]) => {
+      entries.slice(Math.floor(entries.length / 2)).forEach(([k, v]) => {
         this.guidCache.set(k, v);
       });
     }
