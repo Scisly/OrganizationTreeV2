@@ -38,6 +38,8 @@
       <property-set name="managerId" display-name-key="Manager_ID" description-key="Manager ID" of-type="SingleLine.Text" usage="bound" required="false" />
       <property-set name="email" display-name-key="Email" description-key="Email address" of-type="SingleLine.Text" usage="bound" required="false" />
       <property-set name="ag_userid" display-name-key="User_ID" description-key="User ID from system" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="ag_globalid" display-name-key="Global_ID" description-key="Global identifier for person" of-type="SingleLine.Text" usage="bound" required="false" />
+      <property-set name="ag_managerglobalid" display-name-key="Manager_Global_ID" description-key="Manager global ID (fallback when managerId is empty)" of-type="SingleLine.Text" usage="bound" required="false" />
     </data-set>
 
     <!-- dataset node represents survey responses -->
