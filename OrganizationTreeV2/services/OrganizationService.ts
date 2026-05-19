@@ -30,7 +30,6 @@ export class OrganizationService {
       dataSet.sortedRecordIds.forEach((recordId) => {
         const record = dataSet.records[recordId];
 
-        // Debug: sprawdź wartości pól
         const person: OrganizationPerson = {
           id: record.getValue("id") as string,
           name: record.getValue("name") as string,
@@ -38,11 +37,49 @@ export class OrganizationService {
           managerId: (record.getValue("managerId") as string) || undefined,
           email: (record.getValue("email") as string) || undefined,
           ag_userid: (record.getValue("ag_userid") as string) || undefined,
+          ag_globalid: (record.getValue("ag_globalid") as string) || undefined,
+          ag_managerglobalid:
+            (record.getValue("ag_managerglobalid") as string) || undefined,
+          managerIdSource: null,
           children: [],
         };
 
         people.push(person);
       });
+    }
+
+    // Normalizacja managerId - fallback z ag_managerglobalid
+    // Budowanie mapy ag_globalid → id
+    const globalIdToId = new Map<string, string>();
+    for (const person of people) {
+      const globalId = person.ag_globalid;
+      if (globalId) {
+        globalIdToId.set(globalId, person.id);
+      }
+    }
+
+    // Dla każdej osoby: ustaw managerIdSource i rozwiąż ag_managerglobalid jeśli potrzeba
+    for (const person of people) {
+      if (person.managerId) {
+        // managerId ma wartość - użyj go
+        person.managerIdSource = "managerId";
+      } else {
+        const managerGlobalId = person.ag_managerglobalid;
+        if (managerGlobalId) {
+          // managerId pusty, próbuj rozwiązać ag_managerglobalid
+          const resolvedId = globalIdToId.get(managerGlobalId);
+          if (resolvedId) {
+            person.managerId = resolvedId;
+            person.managerIdSource = "ag_managerglobalid";
+          } else {
+            // ag_managerglobalid nie znaleziony w mapie - osoba będzie rootem
+            person.managerIdSource = null;
+          }
+        } else {
+          // Oba puste - osoba jest rootem (CEO)
+          person.managerIdSource = null;
+        }
+      }
     }
 
     // Budowanie hierarchii

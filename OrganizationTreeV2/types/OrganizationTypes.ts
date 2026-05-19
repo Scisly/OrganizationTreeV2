@@ -6,6 +6,9 @@ export interface OrganizationPerson {
   managerId?: string;
   email?: string;
   ag_userid?: string;
+  ag_globalid?: string;
+  ag_managerglobalid?: string;
+  managerIdSource?: "managerId" | "ag_managerglobalid" | null;
   level?: number;
   children?: OrganizationPerson[];
 }
